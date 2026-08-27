@@ -18,12 +18,16 @@
             --c-slate: #8b5cf6;    
             
             /* --- НАСТРОЙКА АССЕТОВ --- */
-            /* Вставьте сюда URL вашей картинки со спрайтами */
-            --sprite-img: url('https://placehold.co/2000x2000/transparent/transparent'); 
+            --sprite-img: url('asset-block.png'); 
         }
 
         body {
             background-color: #0f172a; 
+            background-image: url('fon.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             color: #f8fafc;
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             touch-action: none; 
@@ -49,7 +53,6 @@
             pointer-events: none;
         }
 
-        /* Чтобы спрайты правильно масштабировались под размеры ячеек (container queries) */
         .cell, .shape-block, .drag-block {
             container-type: inline-size;
             position: relative;
@@ -106,7 +109,7 @@
             display: grid;
             grid-template-columns: repeat(8, 1fr);
             gap: 2px;
-            background-color: #1e293b;
+            background-color: rgba(30, 41, 59, 0.85);
             padding: 4px;
             border-radius: 8px;
             width: 100%;
@@ -118,7 +121,7 @@
         }
 
         .cell {
-            background-color: #334155;
+            background-color: rgba(51, 65, 85, 0.8);
             border-radius: 4px;
             transition: background-color 0.1s, box-shadow 0.1s;
         }
@@ -143,7 +146,6 @@
             transition: transform 0.25s, opacity 0.25s, box-shadow 0.25s;
         }
 
-        /* Анимация подсветки для Бомбы */
         .bomb-hover {
             background-color: rgba(239, 68, 68, 0.5) !important;
             box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.9) !important;
@@ -151,7 +153,6 @@
             transition: all 0.1s;
         }
 
-        /* Золотые Клетки */
         .is-special { position: relative; }
         .is-special::after {
             content: '';
@@ -167,27 +168,19 @@
             animation: starPulse 1.5s infinite alternate;
         }
 
-        /* Камни-препятствия */
         .rock-cell {
-            background-color: #0f172a !important;
+            background-color: rgba(15, 23, 42, 0.8) !important;
             border-radius: 4px;
             box-shadow: inset 0 0 6px rgba(0,0,0,0.9);
             position: relative;
         }
         .rock-tough::after, .rock-cracked::after {
-            /* Подложки, если спрайты не загрузятся. Если спрайт есть, они могут быть за ним или отключены */
             content: ''; position: absolute; inset: 2px;
             background-size: cover; background-position: center; z-index: 4;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
             pointer-events: none;
         }
-        .rock-tough::after {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolygon fill='%231f2937' stroke='%23374151' stroke-width='1.5' points='12,2 22,7 22,17 12,22 2,17 2,7'/%3E%3Cpolygon fill='%23111827' points='12,4 19,8 19,16 12,20 5,16 5,8'/%3E%3C/svg%3E");
-        }
-        .rock-cracked::after {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolygon fill='%231f2937' stroke='%23374151' stroke-width='1.5' points='12,2 22,7 22,17 12,22 2,17 2,7'/%3E%3Cpolygon fill='%23111827' points='12,4 19,8 19,16 12,20 5,16 5,8'/%3E%3Cpath fill='none' stroke='%23fbbf24' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M14 2 L12 8 L15 12 L11 18 L13 22' filter='drop-shadow(0 0 3px rgba(251,191,36,0.9))'/%3E%3C/svg%3E");
-        }
-
+        
         @keyframes shakeRock {
             0%, 100% { transform: translateX(0); }
             20% { transform: translateX(-3px) rotate(-3deg); }
@@ -207,7 +200,8 @@
         .tray-slot {
             width: 90px; height: 90px; display: flex; justify-content: center;
             align-items: center; position: relative;
-            background: rgba(30, 41, 59, 0.5); border-radius: 12px;
+            background: rgba(30, 41, 59, 0.7); border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
         }
 
         .shape-container { display: grid; gap: 2px; cursor: grab; transition: transform 0.1s; }
@@ -249,7 +243,7 @@
             aspect-ratio: 1/1; display: flex; flex-direction: column; justify-content: center;
             align-items: center; border-radius: 12px; transition: transform 0.1s; position: relative; overflow: hidden;
         }
-        .level-card.locked { background-color: #1e293b; color: #475569; border: 2px solid #334155; cursor: not-allowed; }
+        .level-card.locked { background-color: rgba(30, 41, 59, 0.9); color: #475569; border: 2px solid #334155; cursor: not-allowed; }
         .level-card.unlocked {
             background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; border: 2px solid #60a5fa;
@@ -257,9 +251,8 @@
         .level-card.completed { background: linear-gradient(135deg, #059669, #10b981); border: 2px solid #34d399; }
         .level-card.unlocked:active, .level-card.completed:active { transform: scale(0.95); }
 
-        /* Стили для кнопок способностей */
         .ability-btn {
-            background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px; padding: 10px 20px; display: flex; align-items: center;
             gap: 8px; color: white; font-weight: bold; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
@@ -296,9 +289,9 @@
     </div>
 
     <!-- Главное Меню -->
-    <div id="main-menu" class="fixed inset-0 bg-slate-900 flex flex-col justify-center items-center z-50 transition-opacity duration-300 flex">
+    <div id="main-menu" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex flex-col justify-center items-center z-50 transition-opacity duration-300 flex">
         <div class="text-center mb-10">
-            <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2 filter drop-shadow-lg">
+            <h1 class="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2 filter drop-shadow-lg">
                 67 БЛОКОВ
             </h1>
         </div>
@@ -322,7 +315,7 @@
     </div>
 
     <!-- Меню Уровней -->
-    <div id="levels-screen" class="fixed inset-0 bg-slate-900 z-40 hidden flex flex-col">
+    <div id="levels-screen" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-40 hidden flex flex-col">
         <div class="flex justify-between items-center p-4 bg-slate-800 shadow-md">
             <button id="btn-levels-back" class="text-white bg-slate-700 p-2 rounded-lg active:scale-90 transition">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -345,17 +338,17 @@
             
             <!-- UI Бесконечного режима -->
             <div id="ui-endless" class="flex justify-between items-end mb-3">
-                <div class="flex flex-col">
-                    <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Счет</span>
+                <div class="flex flex-col bg-slate-800/80 px-4 py-2 rounded-xl backdrop-blur-sm border border-slate-700">
+                    <span class="text-slate-400 text-[10px] font-semibold uppercase tracking-wider">Счет</span>
                     <span id="score-display" class="text-3xl font-bold text-white leading-none">0</span>
                 </div>
                 
-                <div class="flex gap-4 items-end">
-                    <div class="flex flex-col items-end">
-                        <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Рекорд</span>
+                <div class="flex gap-3 items-end">
+                    <div class="flex flex-col items-end bg-slate-800/80 px-4 py-2 rounded-xl backdrop-blur-sm border border-slate-700">
+                        <span class="text-slate-400 text-[10px] font-semibold uppercase tracking-wider">Рекорд</span>
                         <span id="best-display" class="text-lg font-bold text-yellow-400 leading-none">0</span>
                     </div>
-                    <button class="btn-pause bg-slate-700 p-2 rounded-lg transition active:scale-90">
+                    <button class="btn-pause bg-slate-700/80 p-2.5 rounded-xl transition active:scale-90 border border-slate-600 backdrop-blur-sm">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </button>
                 </div>
@@ -363,9 +356,9 @@
             
             <!-- Полоса уровня для Бесконечного режима -->
             <div id="ui-endless-bar" class="flex items-center gap-3 w-full mb-1">
-                <span class="text-sm font-bold text-blue-400 w-12">LVL <span id="level-display">1</span></span>
-                <div class="flex-1 bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700 relative">
-                    <div id="level-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 w-0 transition-all duration-300 ease-out"></div>
+                <span class="text-sm font-bold text-blue-400 w-12 drop-shadow-md">LVL <span id="level-display">1</span></span>
+                <div class="flex-1 bg-slate-800/80 h-3 rounded-full overflow-hidden border border-slate-700 relative backdrop-blur-sm">
+                    <div id="level-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 w-0 transition-all duration-300 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
                 </div>
             </div>
 
@@ -376,11 +369,11 @@
                 </div>
                 
                 <div class="flex gap-2 items-center">
-                    <div class="flex flex-col items-end bg-slate-800 px-3 py-2 rounded-lg border border-slate-700">
+                    <div class="flex flex-col items-end bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700 backdrop-blur-sm">
                         <span class="text-slate-400 text-[10px] font-semibold uppercase">Ходы</span>
-                        <span id="lvl-moves-left" class="text-xl font-bold text-orange-400">10</span>
+                        <span id="lvl-moves-left" class="text-2xl font-black text-orange-400">10</span>
                     </div>
-                    <button class="btn-pause bg-slate-700 p-2 rounded-lg transition active:scale-90">
+                    <button class="btn-pause bg-slate-700/80 p-2.5 rounded-xl transition active:scale-90 border border-slate-600 backdrop-blur-sm">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </button>
                 </div>
@@ -400,10 +393,10 @@
                 
                 <!-- Панель способностей -->
                 <div id="abilities-panel" class="w-full max-w-[400px] flex justify-center gap-6 mt-4 mb-2 z-20">
-                    <button id="btn-ability-bomb" class="ability-btn">
+                    <button id="btn-ability-bomb" class="ability-btn backdrop-blur-sm">
                         <span class="text-2xl drop-shadow">💣</span>
                         <div class="flex flex-col items-start leading-none ml-1">
-                            <span class="text-[10px] text-slate-400 uppercase tracking-widest font-black">Бомба</span>
+                            <span class="text-[10px] text-slate-300 uppercase tracking-widest font-black">Бомба</span>
                             <div class="flex items-center gap-1">
                                 <span id="badge-bomb" class="text-lg">5</span>
                                 <span id="ad-icon-bomb" class="hidden text-sm opacity-80">📺</span>
@@ -411,10 +404,10 @@
                         </div>
                     </button>
 
-                    <button id="btn-ability-refresh" class="ability-btn">
+                    <button id="btn-ability-refresh" class="ability-btn backdrop-blur-sm">
                         <span class="text-2xl drop-shadow">🔄</span>
                         <div class="flex flex-col items-start leading-none ml-1">
-                            <span class="text-[10px] text-slate-400 uppercase tracking-widest font-black">Смена</span>
+                            <span class="text-[10px] text-slate-300 uppercase tracking-widest font-black">Смена</span>
                             <div class="flex items-center gap-1">
                                 <span id="badge-refresh" class="text-lg">5</span>
                                 <span id="ad-icon-refresh" class="hidden text-sm opacity-80">📺</span>
@@ -424,9 +417,9 @@
                 </div>
 
                 <div id="tray">
-                    <div class="tray-slot" id="slot-0"></div>
-                    <div class="tray-slot" id="slot-1"></div>
-                    <div class="tray-slot" id="slot-2"></div>
+                    <div class="tray-slot backdrop-blur-sm" id="slot-0"></div>
+                    <div class="tray-slot backdrop-blur-sm" id="slot-1"></div>
+                    <div class="tray-slot backdrop-blur-sm" id="slot-2"></div>
                 </div>
             </div>
         </div>
@@ -436,7 +429,7 @@
     <div id="drag-ghost"></div>
 
     <!-- Общая Пауза -->
-    <div id="pause-modal" class="fixed inset-0 bg-black/80 flex flex-col justify-center items-center hidden z-50">
+    <div id="pause-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col justify-center items-center hidden z-50">
         <h2 class="text-4xl font-bold text-white mb-8">Пауза</h2>
         <div class="flex flex-col gap-4 w-64">
             <button id="btn-resume" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">Продолжить</button>
@@ -446,7 +439,7 @@
     </div>
 
     <!-- Game Over (Endless) -->
-    <div id="game-over-modal" class="fixed inset-0 bg-black/90 flex flex-col justify-center items-center hidden z-50">
+    <div id="game-over-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex flex-col justify-center items-center hidden z-50">
         <h2 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-500 mb-2">Тупик!</h2>
         <p class="text-slate-300 mb-6 text-lg">Нет доступных ходов</p>
         
@@ -457,7 +450,6 @@
         </div>
 
         <div class="flex flex-col gap-4 w-64">
-            <!-- Кнопка Продолжить за Рекламу (Появляется только если не юзали) -->
             <button id="btn-continue-ad" class="bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95 flex justify-center items-center gap-2">
                 <span>Продолжить</span><span class="text-xl">📺</span>
             </button>
@@ -467,7 +459,7 @@
     </div>
 
     <!-- Level Complete -->
-    <div id="level-win-modal" class="fixed inset-0 bg-black/90 flex flex-col justify-center items-center hidden z-50">
+    <div id="level-win-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex flex-col justify-center items-center hidden z-50">
         <h2 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 mb-2">Пройдено!</h2>
         
         <div id="win-stars-display" class="flex gap-3 mt-4 mb-2"></div>
@@ -485,7 +477,7 @@
     </div>
 
     <!-- Level Failed -->
-    <div id="level-fail-modal" class="fixed inset-0 bg-black/90 flex flex-col justify-center items-center hidden z-50">
+    <div id="level-fail-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex flex-col justify-center items-center hidden z-50">
         <h2 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-600 mb-2">Провал!</h2>
         <p id="fail-reason" class="text-slate-300 mb-6 text-lg">Закончились ходы</p>
         
@@ -519,7 +511,6 @@
         'var(--c-purple)', 'var(--c-pink)', 'var(--c-slate)'
     ];
 
-    // Привязываем спрайты к цветам
     const SPRITE_CLASSES = ['s-red', 's-orange', 's-yellow', 's-green', 's-cyan', 's-blue', 's-pink', 's-pink', 's-blue'];
 
     const ALL_SHAPES = [
@@ -618,12 +609,10 @@
     let board = emptyB();
     let currentTray = [null, null, null];
     
-    // Endless State
     let score = 0, combo = 0, endlessLevel = 1;
     let bestScore = localStorage.getItem('blockPuzzleBest3D') || 0;
     let hasContinuedEndless = false;
 
-    // Levels State
     let currentLevelId = 1, lvlMovesLeft = 0, lvlMovesUsed = 0;
     let lvlLinesTarget = 0, lvlLinesCurrent = 0, lvlRowsTarget = 0, lvlRowsCurrent = 0, lvlColsTarget = 0, lvlColsCurrent = 0;
     let lvlComboTarget = 0, lvlMaxComboReached = 0, lvlSpecialTarget = 0, lvlSpecialCurrent = 0, lvlRocksTarget = 0, lvlRocksCurrent = 0;
@@ -631,10 +620,8 @@
     let specialCells = new Set();
     let rocks = new Map(); 
     
-    // V3 ключ сохранения для исправления багов блокировки
     let levelProgress = JSON.parse(localStorage.getItem('blockPuzzleLevelsProgV3')) || { 1: { unlocked: true } };
 
-    // Способности
     let bombCount = parseInt(localStorage.getItem('bp_bombs')) || 5;
     let refreshCount = parseInt(localStorage.getItem('bp_refresh')) || 5;
     let isBombActive = false;
@@ -648,6 +635,70 @@
 
     const boardEl = document.getElementById('game-board');
     const dragGhost = document.getElementById('drag-ghost');
+
+    const sounds = {
+        bgm: new Audio('fon-6.mp3'),
+        bomb: new Audio('booom2_korotki.mp3'),
+        refresh: new Audio('zamena.wav'),
+        place: new Audio('pesok-1.mp3'),
+        clear: new Audio('stone1.mp3'),
+        crack: new Audio('tresk.mp3'),
+        win: new Audio('final.mp3'),
+        gameOverList: ['game-over-1.mp3', 'game-over-2.mp3', 'game-over-3.mp3', 'game-over-4.mp3']
+    };
+    sounds.bgm.loop = true;
+    sounds.bgm.volume = 0.4;
+
+    let isBgmStarted = false;
+    function startBgm() {
+        if (!isBgmStarted) {
+            sounds.bgm.play().then(() => {
+                isBgmStarted = true;
+                document.removeEventListener('pointerdown', startBgm);
+            }).catch(e => console.log('BGM blocked wait for interaction...'));
+        }
+    }
+    document.addEventListener('pointerdown', startBgm);
+
+    let audioCtx = null;
+    function playUIClick() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+        
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function playSound(name) {
+        if (sounds[name]) {
+            const snd = sounds[name].cloneNode();
+            snd.play().catch(e => console.log('Sound blocked:', e));
+        }
+    }
+
+    function playGameOverSound() {
+        const index = Math.floor(Math.random() * sounds.gameOverList.length);
+        const snd = new Audio(sounds.gameOverList[index]);
+        snd.play().catch(e => console.log('Game Over Sound blocked:', e));
+    }
+
+    document.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('button') || e.target.closest('.level-card.unlocked') || e.target.closest('.level-card.completed')) {
+            playUIClick();
+        }
+    });
 
     function getDailyLevel(index) {
         const parts = getMSKDateString().split('.'); 
@@ -811,6 +862,7 @@
         
         bombCount--;
         saveAbilities();
+        playSound('bomb');
 
         let cellsToAnimate = new Set();
         let rocksToDamage = new Set();
@@ -849,17 +901,20 @@
                 animateClear(parseInt(r), parseInt(c), snapshot);
                 setTimeout(() => { if(cell) cell.className = 'cell'; }, 250);
             } else {
+                playSound('crack');
                 if(cell) {
                     cell.classList.remove('rock-tough');
                     cell.classList.add('rock-cracked');
                     cell.style.animation = 'none';
                     void cell.offsetWidth; 
                     cell.style.animation = 'shakeRock 0.4s ease';
+                    
+                    const sprite = cell.querySelector('.sprite-element');
+                    if (sprite) sprite.className = `sprite-element sprite-block s-rock-cracked`;
                 }
             }
         });
 
-        // БОМБА ТОЛЬКО РАСЧИЩАЕТ ПУТЬ - очков не дает.
         if (currentMode === 'LEVELS') {
             updateLevelUI();
         } else {
@@ -888,6 +943,7 @@
     }
 
     function doRefreshTray() {
+        playSound('refresh');
         currentTray = [getRandomWeightedShape(), getRandomWeightedShape(), getRandomWeightedShape()];
         renderTray();
         checkTrayAndState();
@@ -958,8 +1014,8 @@
         document.getElementById('btn-menu-levels').addEventListener('click', openLevelsScreen);
         document.getElementById('btn-menu-daily').addEventListener('click', () => {
             const today = getMSKDateString();
-            if (dailyStatus.date === today && dailyStatus.completed) return; // Блокировка
-            startLevel('daily_0'); // Старт первого ежедневного этапа
+            if (dailyStatus.date === today && dailyStatus.completed) return; 
+            startLevel('daily_0'); 
         });
         
         document.getElementById('btn-levels-back').addEventListener('click', () => {
@@ -980,9 +1036,9 @@
         
         document.querySelectorAll('.btn-to-levels-grid').forEach(btn => btn.addEventListener('click', () => {
             if (typeof currentLevelId === 'string' && currentLevelId.startsWith('daily_')) {
-                goHome(); // Из ежедневного возвращаемся сразу в главное меню
+                goHome(); 
             } else {
-                openLevelsScreen(); // Из обычных уровней - в сетку уровней
+                openLevelsScreen(); 
             }
         }));
         
@@ -991,7 +1047,7 @@
                 if (currentMode === 'ENDLESS') {
                     startMode('ENDLESS', true);
                 } else if (typeof currentLevelId === 'string' && currentLevelId.startsWith('daily_')) {
-                    startLevel('daily_0'); // Рестарт ежедневного с самого начала!
+                    startLevel('daily_0'); 
                 } else {
                     startLevel(currentLevelId);
                 }
@@ -1086,9 +1142,7 @@
         forceClearCombo();
         hideAllModals();
         
-        // Принудительно скрываем экран уровней
         document.getElementById('levels-screen').classList.add('hidden');
-        
         document.getElementById('main-menu').classList.remove('hidden');
         document.getElementById('menu-best-score').innerText = bestScore;
     }
@@ -1119,7 +1173,6 @@
                 grid.appendChild(header);
             }
 
-            // Уровни заблокированы, кроме тех, что открыты в сохранении
             const prog = levelProgress[lvl.id] || { unlocked: false };
             
             const card = document.createElement('div');
@@ -1237,26 +1290,26 @@
 
         if (typeof currentLevelId === 'string' && currentLevelId.startsWith('daily_')) {
             const idx = parseInt(currentLevelId.split('_')[1]) + 1;
-            html += `<div class="flex flex-col bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 w-full mb-1 items-center"><span class="text-green-400 text-[10px] font-black uppercase tracking-widest shadow-sm">Ежедневный уровень: Этап ${idx}/3</span></div>`;
+            html += `<div class="flex flex-col bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 w-full mb-1 items-center backdrop-blur-sm"><span class="text-green-400 text-[10px] font-black uppercase tracking-widest shadow-sm">Ежедневный уровень: Этап ${idx}/3</span></div>`;
         }
 
         if (data.target !== undefined && (data.type.includes('any') || data.type.includes('lines'))) {
-            html += `<div class="flex flex-col bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 min-w-[60px] items-center"><span class="text-slate-400 text-[10px] font-semibold uppercase">Линии</span><div class="text-xl font-bold"><span class="${lvlLinesCurrent >= data.target ? 'text-green-400' : 'text-white'}">${lvlLinesCurrent}</span><span class="text-slate-500 text-sm">/${data.target}</span></div></div>`;
+            html += `<div class="flex flex-col bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 min-w-[60px] items-center backdrop-blur-sm"><span class="text-slate-400 text-[10px] font-semibold uppercase">Линии</span><div class="text-xl font-bold"><span class="${lvlLinesCurrent >= data.target ? 'text-green-400' : 'text-white'}">${lvlLinesCurrent}</span><span class="text-slate-500 text-sm">/${data.target}</span></div></div>`;
         } 
         if (data.targetRows !== undefined && data.targetRows > 0) {
-            html += `<div class="flex flex-col bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 min-w-[60px] items-center"><span class="text-slate-400 text-[10px] font-semibold uppercase">Строки</span><div class="text-xl font-bold"><span class="${lvlRowsCurrent >= data.targetRows ? 'text-green-400' : 'text-white'}">${lvlRowsCurrent}</span><span class="text-slate-500 text-sm">/${data.targetRows}</span></div></div>`;
+            html += `<div class="flex flex-col bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 min-w-[60px] items-center backdrop-blur-sm"><span class="text-slate-400 text-[10px] font-semibold uppercase">Строки</span><div class="text-xl font-bold"><span class="${lvlRowsCurrent >= data.targetRows ? 'text-green-400' : 'text-white'}">${lvlRowsCurrent}</span><span class="text-slate-500 text-sm">/${data.targetRows}</span></div></div>`;
         }
         if (data.targetCols !== undefined && data.targetCols > 0) {
-            html += `<div class="flex flex-col bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 min-w-[60px] items-center"><span class="text-slate-400 text-[10px] font-semibold uppercase">Столбцы</span><div class="text-xl font-bold"><span class="${lvlColsCurrent >= data.targetCols ? 'text-green-400' : 'text-white'}">${lvlColsCurrent}</span><span class="text-slate-500 text-sm">/${data.targetCols}</span></div></div>`;
+            html += `<div class="flex flex-col bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 min-w-[60px] items-center backdrop-blur-sm"><span class="text-slate-400 text-[10px] font-semibold uppercase">Столбцы</span><div class="text-xl font-bold"><span class="${lvlColsCurrent >= data.targetCols ? 'text-green-400' : 'text-white'}">${lvlColsCurrent}</span><span class="text-slate-500 text-sm">/${data.targetCols}</span></div></div>`;
         }
         if (data.targetCombo !== undefined && data.targetCombo > 0) {
-            html += `<div class="flex flex-col bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 min-w-[60px] items-center"><span class="text-slate-400 text-[10px] font-semibold uppercase">Комбо</span><div class="text-xl font-bold"><span class="${lvlMaxComboReached >= data.targetCombo ? 'text-green-400' : 'text-white'}">${lvlMaxComboReached}</span><span class="text-slate-500 text-sm">/${data.targetCombo}</span></div></div>`;
+            html += `<div class="flex flex-col bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 min-w-[60px] items-center backdrop-blur-sm"><span class="text-slate-400 text-[10px] font-semibold uppercase">Комбо</span><div class="text-xl font-bold"><span class="${lvlMaxComboReached >= data.targetCombo ? 'text-green-400' : 'text-white'}">${lvlMaxComboReached}</span><span class="text-slate-500 text-sm">/${data.targetCombo}</span></div></div>`;
         }
         if (data.targetSpecial !== undefined && data.targetSpecial > 0) {
-             html += `<div class="flex flex-col bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 min-w-[60px] items-center"><span class="text-yellow-400 text-[10px] font-bold uppercase drop-shadow">Золото</span><div class="text-xl font-bold"><span class="${lvlSpecialCurrent >= data.targetSpecial ? 'text-green-400' : 'text-white'}">${lvlSpecialCurrent}</span><span class="text-slate-500 text-sm">/${data.targetSpecial}</span></div></div>`;
+             html += `<div class="flex flex-col bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 min-w-[60px] items-center backdrop-blur-sm"><span class="text-yellow-400 text-[10px] font-bold uppercase drop-shadow">Золото</span><div class="text-xl font-bold"><span class="${lvlSpecialCurrent >= data.targetSpecial ? 'text-green-400' : 'text-white'}">${lvlSpecialCurrent}</span><span class="text-slate-500 text-sm">/${data.targetSpecial}</span></div></div>`;
         }
         if (data.targetRocks !== undefined && data.targetRocks > 0) {
-             html += `<div class="flex flex-col bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 min-w-[60px] items-center"><span class="text-slate-300 text-[10px] font-bold uppercase drop-shadow">Камни</span><div class="text-xl font-bold"><span class="${lvlRocksCurrent >= data.targetRocks ? 'text-green-400' : 'text-white'}">${lvlRocksCurrent}</span><span class="text-slate-500 text-sm">/${data.targetRocks}</span></div></div>`;
+             html += `<div class="flex flex-col bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 min-w-[60px] items-center backdrop-blur-sm"><span class="text-slate-300 text-[10px] font-bold uppercase drop-shadow">Камни</span><div class="text-xl font-bold"><span class="${lvlRocksCurrent >= data.targetRocks ? 'text-green-400' : 'text-white'}">${lvlRocksCurrent}</span><span class="text-slate-500 text-sm">/${data.targetRocks}</span></div></div>`;
         }
         
         container.innerHTML = html;
@@ -1295,11 +1348,11 @@
     }
 
     function levelWin() {
+        playSound('win');
         let isDaily = typeof currentLevelId === 'string' && currentLevelId.startsWith('daily_');
         let dailyIdx = isDaily ? parseInt(currentLevelId.split('_')[1]) : -1;
 
         if (isDaily && dailyIdx === 2) {
-            // Пройден последний 3-й этап ежедневного уровня!
             dailyStatus.completed = true;
             localStorage.setItem('blockPuzzleDailyState', JSON.stringify(dailyStatus));
             updateDailyMenuUI();
@@ -1343,12 +1396,10 @@
             return;
         }
 
-        // Прогресс для обычных уровней
         if (!levelProgress[currentLevelId]) levelProgress[currentLevelId] = {};
         levelProgress[currentLevelId].completed = true;
         levelProgress[currentLevelId].stars = Math.max(levelProgress[currentLevelId].stars || 0, earnedStars);
         
-        // Разблокировка следующего уровня
         if (currentLevelId < LEVELS.length) {
             if (!levelProgress[currentLevelId + 1]) levelProgress[currentLevelId + 1] = {};
             levelProgress[currentLevelId + 1].unlocked = true;
@@ -1365,6 +1416,7 @@
     }
 
     function levelFail(reason) {
+        playGameOverSound();
         document.getElementById('fail-reason').innerText = reason;
         const data = getLevelData(currentLevelId);
         const container = document.getElementById('fail-progress-container');
@@ -1668,6 +1720,8 @@
         const shape = shapeObj.m;
         const colorIdx = shapeObj.c;
         
+        playSound('place');
+        
         for (let r = 0; r < shape.length; r++) {
             for (let c = 0; c < shape[r].length; c++) {
                 if (shape[r][c]) {
@@ -1718,6 +1772,7 @@
         movesSinceLastClear++;
 
         if (totalLines > 0) {
+            playSound('clear');
             const cellsToAnimate = new Set();
             const rocksToDamage = new Set();
             
@@ -1760,6 +1815,7 @@
                     animateClear(parseInt(r), parseInt(c), snapshot);
                     setTimeout(() => { if(cell) cell.className = 'cell'; }, 250);
                 } else {
+                    playSound('crack');
                     if(cell) {
                         cell.classList.remove('rock-tough');
                         cell.classList.add('rock-cracked');
@@ -1767,7 +1823,6 @@
                         void cell.offsetWidth; 
                         cell.style.animation = 'shakeRock 0.4s ease';
                         
-                        // Меняем класс спрайта, если камень стал треснутым
                         const sprite = cell.querySelector('.sprite-element');
                         if (sprite) sprite.className = `sprite-element sprite-block s-rock-cracked`;
                     }
@@ -1949,6 +2004,7 @@
         let canPlay = currentTray.some(shapeObj => shapeObj && checkPlayability(shapeObj.m));
 
         if (!canPlay && currentTray.some(s => s !== null)) {
+            playGameOverSound();
             setTimeout(() => {
                 localStorage.removeItem('blockPuzzleEndlessSave'); 
                 document.getElementById('final-score').innerText = score;
