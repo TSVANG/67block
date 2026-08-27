@@ -40,8 +40,11 @@
                -moz-user-select: none;
                 -ms-user-select: none;
                     user-select: none;
-            /* Адаптация под челку iOS и Баннер ВК */
-            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* Безопасная зона для баннера ВК */
+        .main-wrapper {
+            padding-bottom: calc(env(safe-area-inset-bottom) + 100px);
             padding-top: env(safe-area-inset-top);
         }
 
@@ -81,6 +84,23 @@
         /* --- КООРДИНАТЫ КАМНЕЙ --- */
         .s-rock { width: 113px; height: 113px; background-position: -521px -240px; transform: scale(calc(100cqi / 113)); }
         .s-rock-cracked { width: 113px; height: 113px; background-position: -663px -240px; transform: scale(calc(100cqi / 113)); }
+
+        /* --- ИКОНКИ НАСТРОЕК (Масштабируем для кнопок) --- */
+        .s-music { width: 82px; height: 83px; background-position: -1297px -308px; transform: scale(0.45) translate(-50%, -50%); transform-origin: top left; left: 50%; top: 50%; }
+        .s-sound { width: 82px; height: 83px; background-position: -1390px -308px; transform: scale(0.45) translate(-50%, -50%); transform-origin: top left; left: 50%; top: 50%; }
+        
+        .muted-line {
+            position: absolute;
+            width: 4px;
+            height: 120%;
+            background-color: #ef4444; /* red-500 */
+            top: -10%;
+            left: 50%;
+            transform: translateX(-50%) rotate(45deg);
+            z-index: 10;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            border-radius: 2px;
+        }
 
         #game-board {
             display: grid;
@@ -151,12 +171,6 @@
             box-shadow: inset 0 0 6px rgba(0,0,0,0.9);
             position: relative;
         }
-        .rock-tough::after, .rock-cracked::after {
-            content: ''; position: absolute; inset: 2px;
-            background-size: cover; background-position: center; z-index: 4;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
-            pointer-events: none;
-        }
         
         @keyframes shakeRock {
             0%, 100% { transform: translateX(0); }
@@ -213,6 +227,7 @@
 
         .scrollable {
             overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; 
+            padding-bottom: calc(env(safe-area-inset-bottom) + 120px); /* Место для прокрутки над баннером */
         }
         .scrollable::-webkit-scrollbar { display: none; }
         
@@ -236,7 +251,7 @@
         .ability-btn:active { transform: scale(0.95); }
         .ability-btn.active { background: #ef4444; border-color: #f87171; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
 
-        /* Стили каталога игр (Адаптировано под общий стиль) */
+        /* Стили каталога игр */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 100;
@@ -295,6 +310,18 @@
 </head>
 <body oncontextmenu="return false;">
 
+    <!-- Плавающие кнопки настроек звука (Общие) -->
+    <div id="global-sound-controls" class="fixed top-4 right-4 flex gap-3 z-[60] transition-opacity duration-300">
+        <button id="btn-toggle-music" class="w-12 h-12 bg-slate-800/80 rounded-full border border-slate-600 active:scale-90 relative overflow-hidden backdrop-blur-sm shadow-lg flex justify-center items-center">
+            <div class="sprite-element s-music absolute"></div>
+            <div id="line-music" class="muted-line hidden"></div>
+        </button>
+        <button id="btn-toggle-sound" class="w-12 h-12 bg-slate-800/80 rounded-full border border-slate-600 active:scale-90 relative overflow-hidden backdrop-blur-sm shadow-lg flex justify-center items-center">
+            <div class="sprite-element s-sound absolute"></div>
+            <div id="line-sound" class="muted-line hidden"></div>
+        </button>
+    </div>
+
     <!-- Имитация загрузки рекламы (заглушка на случай сбоя ВК) -->
     <div id="ad-modal" class="fixed inset-0 bg-black/95 z-[100] flex flex-col justify-center items-center hidden">
         <div class="text-6xl mb-4 animate-bounce">📺</div>
@@ -305,52 +332,58 @@
     </div>
 
     <!-- Модальное окно восстановления сессии -->
-    <div id="resume-modal" class="fixed inset-0 bg-black/95 z-[80] flex flex-col justify-center items-center hidden backdrop-blur-md">
-        <h2 class="text-3xl font-bold text-white mb-2 text-center">Найдена<br>незаконченная игра</h2>
-        <p class="text-slate-400 mb-8 text-center px-4">У вас есть сохраненный прогресс. Хотите продолжить или начать заново?</p>
-        <div class="flex flex-col gap-4 w-64">
-            <button id="btn-resume-session" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl text-xl shadow-lg transform transition active:scale-95">Продолжить</button>
-            <button id="btn-restart-session" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-6 rounded-2xl text-xl shadow-lg transform transition active:scale-95 text-red-400">Сбросить</button>
+    <div id="resume-modal" class="fixed inset-0 bg-slate-900/95 z-[90] flex flex-col justify-center items-center hidden backdrop-blur-md">
+        <div class="bg-slate-800 p-8 rounded-3xl border border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.3)] max-w-sm w-full mx-4 flex flex-col items-center text-center">
+            <div class="text-6xl mb-4">💾</div>
+            <h2 class="text-2xl font-bold text-white mb-2">Найдена игра</h2>
+            <p class="text-slate-400 mb-8 text-sm">У вас есть сохраненный прогресс. Хотите продолжить с того же места?</p>
+            <div class="flex flex-col gap-3 w-full">
+                <button id="btn-resume-session" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl text-lg shadow-lg transform transition active:scale-95 w-full">Продолжить</button>
+                <button id="btn-restart-session" class="bg-slate-700 hover:bg-slate-600 text-red-400 font-bold py-4 px-6 rounded-2xl text-lg shadow-lg transform transition active:scale-95 w-full">Сбросить</button>
+            </div>
         </div>
     </div>
 
     <!-- Облачная синхронизация -->
-    <div id="cloud-sync-modal" class="fixed inset-0 bg-black/95 z-[90] flex flex-col justify-center items-center hidden backdrop-blur-md">
-        <h2 class="text-3xl font-bold text-white mb-2 text-center text-blue-400">Облачное<br>сохранение</h2>
-        <p class="text-slate-300 mb-8 text-center px-4">В облаке VK найден другой прогресс. Загрузить его на это устройство?</p>
-        <div class="flex flex-col gap-4 w-64">
-            <button id="btn-sync-accept" class="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-6 rounded-2xl text-xl shadow-lg transform transition active:scale-95">Загрузить</button>
-            <button id="btn-sync-reject" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-6 rounded-2xl text-xl shadow-lg transform transition active:scale-95">Оставить локальное</button>
+    <div id="cloud-sync-modal" class="fixed inset-0 bg-slate-900/95 z-[95] flex flex-col justify-center items-center hidden backdrop-blur-md">
+        <div class="bg-slate-800 p-8 rounded-3xl border border-green-500/30 shadow-[0_0_40px_rgba(16,185,129,0.3)] max-w-sm w-full mx-4 flex flex-col items-center text-center">
+            <div class="text-6xl mb-4">☁️</div>
+            <h2 class="text-2xl font-bold text-green-400 mb-2 leading-tight">Облачное<br>сохранение</h2>
+            <p class="text-slate-300 mb-8 text-sm">Найдено сохранение с другого устройства. Загрузить прогресс сюда?</p>
+            <div class="flex flex-col gap-3 w-full">
+                <button id="btn-sync-accept" class="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-6 rounded-2xl text-lg shadow-lg transform transition active:scale-95 w-full">Загрузить из облака</button>
+                <button id="btn-sync-reject" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-4 px-6 rounded-2xl text-lg shadow-lg transform transition active:scale-95 w-full">Оставить локальное</button>
+            </div>
         </div>
     </div>
 
     <!-- Модалка наград -->
-    <div id="reward-modal" class="fixed inset-0 bg-black/95 z-[70] flex flex-col justify-center items-center hidden backdrop-blur-md">
+    <div id="reward-modal" class="fixed inset-0 bg-black/95 z-[80] flex flex-col justify-center items-center hidden backdrop-blur-md">
         <h2 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-6 drop-shadow-lg text-center">Отличная работа!</h2>
         <p id="reward-modal-desc" class="text-slate-200 text-lg mb-8 text-center px-4">Пройдено 5 этапов.<br>Выберите заслуженную награду:</p>
         <div class="flex gap-6">
             <button class="bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-600 flex flex-col items-center transform transition active:scale-95 w-36 shadow-xl" onclick="claimReward('bomb')">
-                <span class="text-6xl mb-3">💣</span>
-                <span class="text-white font-bold">+1 Бомба</span>
+                <span class="text-6xl mb-3 pointer-events-none">💣</span>
+                <span class="text-white font-bold pointer-events-none">+1 Бомба</span>
             </button>
             <button class="bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-600 flex flex-col items-center transform transition active:scale-95 w-36 shadow-xl" onclick="claimReward('refresh')">
-                <span class="text-6xl mb-3">🔄</span>
-                <span class="text-white font-bold">+1 Смена</span>
+                <span class="text-6xl mb-3 pointer-events-none">🔄</span>
+                <span class="text-white font-bold pointer-events-none">+1 Смена</span>
             </button>
         </div>
     </div>
 
-    <!-- Каталог Игр (Стилизован) -->
+    <!-- Каталог Игр -->
     <div id="games-modal" class="modal">
         <div class="modal-content">
             <h2 class="text-2xl font-bold text-white">🎮 Мои Игры</h2>
             <div id="games-list" class="games-grid"></div>
-            <button class="modal-btn primary" id="close-games-btn">Закрыть</button>
+            <button class="modal-btn primary no-click-sound" id="close-games-btn">Закрыть</button>
         </div>
     </div>
 
     <!-- Главное Меню -->
-    <div id="main-menu" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex flex-col justify-center items-center z-50 transition-opacity duration-300 flex">
+    <div id="main-menu" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex flex-col justify-center items-center z-50 transition-opacity duration-300">
         <div class="text-center mb-10">
             <h1 class="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2 filter drop-shadow-lg leading-tight">
                 67<br>БЛОКОВ
@@ -390,15 +423,15 @@
         </div>
         
         <div class="flex-1 p-4 scrollable relative">
-            <div id="levels-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-3 max-w-2xl mx-auto pb-32">
+            <div id="levels-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-3 max-w-2xl mx-auto">
                 <!-- Сюда вставляются карточки уровней -->
             </div>
         </div>
     </div>
 
-    <div class="flex flex-row justify-center items-start w-full h-[100dvh] max-w-5xl mx-auto relative pt-4 pb-20">
+    <!-- Основной игровой контейнер с адаптацией под баннер ВК -->
+    <div class="main-wrapper flex flex-row justify-center items-start w-full h-[100dvh] max-w-5xl mx-auto relative overflow-hidden">
         
-        <!-- ОСНОВНАЯ ИГРОВАЯ КОЛОНКА -->
         <div class="flex flex-col w-full max-w-md shrink-0 h-full z-10 px-4">
             
             <!-- UI Бесконечного режима -->
@@ -458,9 +491,9 @@
                 
                 <!-- Панель способностей -->
                 <div id="abilities-panel" class="w-full max-w-[400px] flex justify-center gap-6 mt-4 mb-2 z-20">
-                    <button id="btn-ability-bomb" class="ability-btn backdrop-blur-sm">
-                        <span class="text-2xl drop-shadow">💣</span>
-                        <div class="flex flex-col items-start leading-none ml-1">
+                    <button id="btn-ability-bomb" class="ability-btn backdrop-blur-sm no-click-sound">
+                        <span class="text-2xl drop-shadow pointer-events-none">💣</span>
+                        <div class="flex flex-col items-start leading-none ml-1 pointer-events-none">
                             <span class="text-[10px] text-slate-300 uppercase tracking-widest font-black">Бомба</span>
                             <div class="flex items-center gap-1">
                                 <span id="badge-bomb" class="text-lg">5</span>
@@ -469,9 +502,9 @@
                         </div>
                     </button>
 
-                    <button id="btn-ability-refresh" class="ability-btn backdrop-blur-sm">
-                        <span class="text-2xl drop-shadow">🔄</span>
-                        <div class="flex flex-col items-start leading-none ml-1">
+                    <button id="btn-ability-refresh" class="ability-btn backdrop-blur-sm no-click-sound">
+                        <span class="text-2xl drop-shadow pointer-events-none">🔄</span>
+                        <div class="flex flex-col items-start leading-none ml-1 pointer-events-none">
                             <span class="text-[10px] text-slate-300 uppercase tracking-widest font-black">Смена</span>
                             <div class="flex items-center gap-1">
                                 <span id="badge-refresh" class="text-lg">5</span>
@@ -536,8 +569,8 @@
 
         <div class="flex flex-col gap-4 w-64">
             <button id="btn-next-level" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">Следующий</button>
-            <button class="btn-restart bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">Переиграть</button>
-            <button class="btn-win-levels btn-to-levels-grid bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">Выход</button>
+            <button id="btn-win-restart" class="btn-restart bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">Переиграть</button>
+            <button class="btn-win-levels btn-to-levels-grid bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">В меню</button>
         </div>
     </div>
 
@@ -553,7 +586,7 @@
 
         <div class="flex flex-col gap-4 w-64">
             <button class="btn-restart bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">Попробовать снова</button>
-            <button class="btn-fail-levels btn-to-levels-grid bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">Выход</button>
+            <button class="btn-fail-levels btn-to-levels-grid bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">В меню</button>
         </div>
     </div>
 
@@ -574,30 +607,107 @@
     let hasPlayedOnce = false;
     let isVkBannerVisible = false;
 
-    // Подключение VK Bridge
+    // --- ЗВУКИ И МУЗЫКА ---
+    let isMusicMuted = localStorage.getItem('bp_musicMuted') === 'true';
+    let isSoundMuted = localStorage.getItem('bp_soundMuted') === 'true';
+
+    const sounds = {
+        bgm: new Audio('fon-6.mp3'),
+        bomb: new Audio('booom2_korotki.mp3'),
+        refresh: new Audio('zamena.wav'),
+        place: new Audio('pesok-1.mp3'),
+        clear: new Audio('stone1.mp3'),
+        crack: new Audio('tresk.mp3'),
+        win: new Audio('final.mp3'),
+        click: new Audio('Minecraft_Click.mp3'),
+        gameOverList: ['game-over-1.mp3', 'game-over-2.mp3', 'game-over-3.mp3', 'game-over-4.mp3']
+    };
+    sounds.bgm.loop = true;
+    sounds.bgm.volume = 0.4;
+
+    let isBgmStarted = false;
+
+    function initAudioUI() {
+        document.querySelectorAll('#line-music').forEach(el => isMusicMuted ? el.classList.remove('hidden') : el.classList.add('hidden'));
+        document.querySelectorAll('#line-sound').forEach(el => isSoundMuted ? el.classList.remove('hidden') : el.classList.add('hidden'));
+    }
+
+    function toggleMusic() {
+        isMusicMuted = !isMusicMuted;
+        localStorage.setItem('bp_musicMuted', isMusicMuted);
+        if (isMusicMuted) sounds.bgm.pause();
+        else if (isBgmStarted) sounds.bgm.play().catch(e=>console.log(e));
+        initAudioUI();
+    }
+
+    function toggleSound() {
+        isSoundMuted = !isSoundMuted;
+        localStorage.setItem('bp_soundMuted', isSoundMuted);
+        initAudioUI();
+    }
+
+    function startBgm() {
+        if (!isBgmStarted && !isMusicMuted) {
+            sounds.bgm.play().then(() => {
+                isBgmStarted = true;
+                document.removeEventListener('pointerdown', startBgm);
+            }).catch(e => console.log('BGM blocked wait for interaction...'));
+        }
+    }
+    document.addEventListener('pointerdown', startBgm);
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            sounds.bgm.pause();
+        } else {
+            if (isBgmStarted && !isMusicMuted) sounds.bgm.play().catch(e=>console.log(e));
+        }
+    });
+
+    function playSound(name) {
+        if (isSoundMuted) return;
+        if (sounds[name]) {
+            const snd = sounds[name].cloneNode();
+            snd.play().catch(e => console.log('Sound blocked:', e));
+        }
+    }
+
+    function playGameOverSound() {
+        if (isSoundMuted) return;
+        const index = Math.floor(Math.random() * sounds.gameOverList.length);
+        const snd = new Audio(sounds.gameOverList[index]);
+        snd.play().catch(e => console.log('Game Over Sound blocked:', e));
+    }
+
+    document.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('#btn-toggle-music')) { toggleMusic(); return; }
+        if (e.target.closest('#btn-toggle-sound')) { toggleSound(); return; }
+        if (e.target.closest('.ability-btn') || e.target.closest('.no-click-sound')) return; 
+
+        if (e.target.closest('button') || e.target.closest('.level-card.unlocked') || e.target.closest('.level-card.completed') || e.target.closest('.game-card')) {
+            playSound('click');
+        }
+    });
+
+    // --- ИНИЦИАЛИЗАЦИЯ VK ---
     if (window.vkBridge) {
         vkBridge.send('VKWebAppInit').then(() => {
             console.log("VK Bridge initialized");
             
-            // Включаем баннер
             vkBridge.send('VKWebAppShowBannerAd', { banner_location: 'bottom' })
                 .then(data => {
-                    if (data.result) {
-                        isVkBannerVisible = true;
-                        document.body.style.paddingBottom = '70px'; // Отступ для баннера
-                    }
+                    if (data.result) isVkBannerVisible = true;
                 }).catch(e => console.log('Banner error', e));
 
-            // Пытаемся подтянуть сохранения из облака
             vkBridge.send("VKWebAppStorageGet", { "keys": ["bp_savedata_v5"] })
                 .then(data => {
                     if (data.keys && data.keys[0].value !== "") {
                         try {
                             let cloudSave = JSON.parse(data.keys[0].value);
-                            migrateOldSaves(); // Читаем сначала локальные (если есть старые версии)
+                            migrateOldSaves(); 
                             
-                            if (cloudSave && cloudSave.updatedAt > (saveData.updatedAt || 0)) {
-                                // Облако свежее - спрашиваем юзера
+                            // Разница в 5 секунд, чтобы избежать спама окон при микрорассинхронах
+                            if (cloudSave && cloudSave.updatedAt > (saveData.updatedAt || 0) + 5000) {
                                 document.getElementById('cloud-sync-modal').classList.remove('hidden');
                                 
                                 document.getElementById('btn-sync-accept').onclick = () => {
@@ -608,11 +718,10 @@
                                 };
                                 document.getElementById('btn-sync-reject').onclick = () => {
                                     document.getElementById('cloud-sync-modal').classList.add('hidden');
-                                    saveLocalAndCloud(); // Перезаписываем облако локалкой
+                                    saveLocalAndCloud(); 
                                     checkActiveSessionOnLoad();
                                 };
                             } else {
-                                // Локальное свежее, просто обновляем
                                 applySaveDataToUI();
                                 saveLocalAndCloud();
                                 checkActiveSessionOnLoad();
@@ -623,7 +732,6 @@
                             checkActiveSessionOnLoad();
                         }
                     } else {
-                        // Нет сохранения в ВК
                         migrateOldSaves();
                         applySaveDataToUI();
                         saveLocalAndCloud();
@@ -631,13 +739,11 @@
                     }
                 })
                 .catch(e => {
-                    console.log("VK Storage Get error", e);
                     migrateOldSaves();
                     applySaveDataToUI();
                     checkActiveSessionOnLoad();
                 });
         }).catch(error => {
-            console.error("VK Init Failed", error);
             migrateOldSaves();
             applySaveDataToUI();
             checkActiveSessionOnLoad();
@@ -649,7 +755,6 @@
     }
 
     function migrateOldSaves() {
-        // Миграция со старых ключей если они есть
         const localV5 = localStorage.getItem('bp_savedata_v5');
         if (localV5) {
             try { saveData = JSON.parse(localV5); return; } catch(e){}
@@ -668,7 +773,6 @@
         saveData.updatedAt = Date.now();
         localStorage.setItem('bp_savedata_v5', JSON.stringify(saveData));
         
-        // Debounce VK API calls to avoid rate limits
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
             if (window.vkBridge) {
@@ -694,6 +798,7 @@
     }
 
     function checkActiveSessionOnLoad() {
+        initAudioUI();
         if (saveData.activeSession) {
             document.getElementById('resume-modal').classList.remove('hidden');
             
@@ -785,11 +890,9 @@
             vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' })
                 .then((data) => {
                     if (data.result) callback();
-                    else console.log('Ad skipped');
+                    else simulateAd(callback);
                 })
                 .catch((e) => {
-                    console.log('Reward Ad error', e);
-                    // Fallback если нет рекламы - даем бонус
                     simulateAd(callback);
                 });
         } else {
@@ -1016,80 +1119,6 @@
     const boardEl = document.getElementById('game-board');
     const dragGhost = document.getElementById('drag-ghost');
 
-    // --- ЗВУКИ ---
-    const sounds = {
-        bgm: new Audio('fon-6.mp3'),
-        bomb: new Audio('booom2_korotki.mp3'),
-        refresh: new Audio('zamena.wav'),
-        place: new Audio('pesok-1.mp3'),
-        clear: new Audio('stone1.mp3'),
-        crack: new Audio('tresk.mp3'),
-        win: new Audio('final.mp3'),
-        gameOverList: ['game-over-1.mp3', 'game-over-2.mp3', 'game-over-3.mp3', 'game-over-4.wav']
-    };
-    sounds.bgm.loop = true;
-    sounds.bgm.volume = 0.4;
-
-    let isBgmStarted = false;
-    function startBgm() {
-        if (!isBgmStarted) {
-            sounds.bgm.play().then(() => {
-                isBgmStarted = true;
-                document.removeEventListener('pointerdown', startBgm);
-            }).catch(e => console.log('BGM blocked wait for interaction...'));
-        }
-    }
-    document.addEventListener('pointerdown', startBgm);
-
-    // Пауза музыки при скрытии
-    document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-            if (isBgmStarted) sounds.bgm.pause();
-        } else {
-            if (isBgmStarted) sounds.bgm.play().catch(e=>console.log(e));
-        }
-    });
-
-    let audioCtx = null;
-    function playUIClick() {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
-        
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        
-        osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.1);
-    }
-
-    function playSound(name) {
-        if (sounds[name]) {
-            const snd = sounds[name].cloneNode();
-            snd.play().catch(e => console.log('Sound blocked:', e));
-        }
-    }
-
-    function playGameOverSound() {
-        const index = Math.floor(Math.random() * sounds.gameOverList.length);
-        const snd = new Audio(sounds.gameOverList[index]);
-        snd.play().catch(e => console.log('Game Over Sound blocked:', e));
-    }
-
-    document.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('button') || e.target.closest('.level-card.unlocked') || e.target.closest('.level-card.completed') || e.target.closest('.game-card')) {
-            playUIClick();
-        }
-    });
-
     function getDailyLevel(index) {
         const parts = getMSKDateString().split('.'); 
         const seed = parseInt(parts[2]) * 10000 + parseInt(parts[1]) * 100 + parseInt(parts[0]) + (index * 99999);
@@ -1145,7 +1174,12 @@
         else btnB.classList.remove('active');
     }
 
-    function claimReward(type) {
+    function showRewardModal(callback) {
+        rewardCallback = callback;
+        document.getElementById('reward-modal').classList.remove('hidden');
+    }
+
+    window.claimReward = function(type) {
         if (type === 'bomb') bombCount++;
         else if (type === 'refresh') refreshCount++;
         saveData.bombCount = bombCount;
@@ -1255,18 +1289,17 @@
                 rocks.delete(id);
                 if (currentMode === 'LEVELS') lvlRocksCurrent++;
                 animateClear(parseInt(r), parseInt(c), snapshot);
-                setTimeout(() => { if(cell) cell.className = 'cell'; }, 250);
             } else {
                 playSound('crack');
                 if(cell) {
                     cell.classList.remove('rock-tough');
                     cell.classList.add('rock-cracked');
+                    const sprite = cell.querySelector('.sprite-element');
+                    if (sprite) sprite.className = `sprite-element sprite-block s-rock-cracked`;
+
                     cell.style.animation = 'none';
                     void cell.offsetWidth; 
                     cell.style.animation = 'shakeRock 0.4s ease';
-                    
-                    const sprite = cell.querySelector('.sprite-element');
-                    if (sprite) sprite.className = `sprite-element sprite-block s-rock-cracked`;
                 }
             }
         });
@@ -1485,7 +1518,6 @@
         forceClearCombo();
         hideAllModals();
         
-        // Очищаем экраны уровней и возвращаем в меню
         document.getElementById('levels-screen').classList.add('hidden');
         document.getElementById('ui-endless').classList.add('hidden');
         document.getElementById('ui-endless-bar').classList.add('hidden');
@@ -1529,7 +1561,7 @@
             const prog = levelProgress[lvl.id] || { unlocked: false };
             const card = document.createElement('div');
             
-            if (!prog.unlocked && lvl.id !== 1) { // 1 всегда открыт
+            if (!prog.unlocked && lvl.id !== 1) { 
                 card.className = 'level-card locked';
                 card.innerHTML = `<svg class="w-8 h-8 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg><span class="font-bold text-lg">${lvl.id}</span>`;
             } else {
@@ -1702,7 +1734,7 @@
 
     function levelWin() {
         playSound('win');
-        saveData.activeSession = null; // Очищаем сессию, уровень пройден
+        saveData.activeSession = null; 
         
         let isDaily = typeof currentLevelId === 'string' && currentLevelId.startsWith('daily_');
         let dailyIdx = isDaily ? parseInt(currentLevelId.split('_')[1]) : -1;
@@ -1733,7 +1765,7 @@
             }
             document.getElementById('win-moves-used').innerText = lvlMovesUsed;
             
-            const restartBtn = document.querySelector('#level-win-modal .btn-restart');
+            const restartBtn = document.querySelector('#btn-win-restart');
             if (isDaily) {
                 restartBtn.style.display = 'none'; 
                 document.getElementById('btn-next-level').style.display = 'block';
@@ -1766,6 +1798,7 @@
         }
         
         saveData.levelProgress = levelProgress;
+        saveLocalAndCloud(); 
 
         levelsCompletedSession++;
         if (levelsCompletedSession % 6 === 0) {
@@ -1774,6 +1807,7 @@
 
         if (currentLevelId % 5 === 0 && !levelProgress[currentLevelId].rewarded) {
             levelProgress[currentLevelId].rewarded = true;
+            saveLocalAndCloud(); // Сохраняем состояние выдачи награды немедленно
             showRewardModal(showWinScreen);
         } else {
             showWinScreen();
@@ -1828,8 +1862,6 @@
                 if (rocks.has(`${r}-${c}`)) {
                     const rock = rocks.get(`${r}-${c}`);
                     cell.classList.add('rock-cell');
-                    if (rock.hp === 2) cell.classList.add('rock-tough');
-                    else if (rock.hp === 1) cell.classList.add('rock-cracked');
                     
                     const sprite = document.createElement('div');
                     sprite.className = `sprite-element sprite-block ${rock.hp === 2 ? 's-rock' : 's-rock-cracked'}`;
@@ -2180,18 +2212,17 @@
                     rocks.delete(id);
                     if (currentMode === 'LEVELS') lvlRocksCurrent++;
                     animateClear(parseInt(r), parseInt(c), snapshot);
-                    setTimeout(() => { if(cell) cell.className = 'cell'; }, 250);
                 } else {
                     playSound('crack');
                     if(cell) {
                         cell.classList.remove('rock-tough');
                         cell.classList.add('rock-cracked');
+                        const sprite = cell.querySelector('.sprite-element');
+                        if (sprite) sprite.className = `sprite-element sprite-block s-rock-cracked`;
+
                         cell.style.animation = 'none';
                         void cell.offsetWidth; 
                         cell.style.animation = 'shakeRock 0.4s ease';
-                        
-                        const sprite = cell.querySelector('.sprite-element');
-                        if (sprite) sprite.className = `sprite-element sprite-block s-rock-cracked`;
                     }
                 }
             });
