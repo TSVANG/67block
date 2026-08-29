@@ -90,7 +90,7 @@
             padding: 4px;
             border-radius: 8px;
             width: 100%;
-            max-width: 400px;
+            max-width: min(100%, 55vh); /* Адаптивность для предотвращения наезда на верхний UI */
             aspect-ratio: 1 / 1;
             margin: 0 auto;
             box-shadow: inset 0 4px 6px -1px rgba(0, 0, 0, 0.5);
@@ -154,9 +154,10 @@
         }
         @keyframes starPulse { from { transform: scale(0.85); opacity: 0.75; } to { transform: scale(1.15); opacity: 1; } }
 
-        #tray { display: flex; justify-content: center; align-items: center; gap: 15px; height: 120px; width: 100%; max-width: 400px; }
+        /* Адаптивный поднос (Tray) */
+        #tray { display: flex; justify-content: center; align-items: center; gap: 15px; height: min(120px, 15vh); width: 100%; max-width: 400px; }
         .tray-slot {
-            width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; position: relative;
+            width: min(90px, 12vh); height: min(90px, 12vh); display: flex; justify-content: center; align-items: center; position: relative;
             background: rgba(30, 41, 59, 0.7); border-radius: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
         }
 
@@ -278,9 +279,9 @@
             </div>
 
             <div class="flex flex-col gap-3 w-full">
-                <button id="btn-menu-endless" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold py-4 rounded-2xl text-xl shadow-[0_4px_15px_rgba(59,130,246,0.5)] active:scale-95 transition flex flex-col items-center">
+                <!-- Убраны лишние надписи с кнопок -->
+                <button id="btn-menu-endless" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold py-5 rounded-2xl text-xl shadow-[0_4px_15px_rgba(59,130,246,0.5)] active:scale-95 transition flex justify-center items-center">
                     <span>БЕСКОНЕЧНЫЙ</span>
-                    <span class="text-xs font-normal text-blue-200 mt-1">Рекорд: <span id="menu-best-score">0</span></span>
                 </button>
                 
                 <button id="btn-menu-daily" class="w-full bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold py-4 rounded-2xl text-xl shadow-[0_4px_15px_rgba(16,185,129,0.5)] active:scale-95 transition flex flex-col items-center">
@@ -288,9 +289,9 @@
                     <span class="text-xs font-normal text-green-200 mt-1">3 этапа подряд</span>
                 </button>
 
-                <button id="btn-menu-levels" class="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-bold py-4 rounded-2xl text-xl shadow-[0_4px_15px_rgba(168,85,247,0.5)] active:scale-95 transition flex flex-col items-center">
+                <!-- Убрана надпись Головоломки -->
+                <button id="btn-menu-levels" class="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-bold py-5 rounded-2xl text-xl shadow-[0_4px_15px_rgba(168,85,247,0.5)] active:scale-95 transition flex justify-center items-center">
                     <span>УРОВНИ</span>
-                    <span class="text-xs font-normal text-purple-200 mt-1">Головоломки</span>
                 </button>
             </div>
 
@@ -510,7 +511,8 @@
     </div>
 
 <script>
-    const APP_ID = 51936310; // Placeholder APP_ID, change if needed for share
+    // ID игры для поделиться обновлен как просили
+    const APP_ID = 54692847; 
 
     let saveData = {
         updatedAt: 0, bestScore: 0, bombCount: 5, refreshCount: 5,
@@ -580,7 +582,9 @@
     function playSound(name) {
         if (isSoundMuted) return;
         if (sounds[name]) {
+            // Клонируем ноду для мгновенного наложения одинаковых звуков друг на друга
             const snd = sounds[name].cloneNode();
+            snd.volume = sounds[name].volume || 1;
             snd.play().catch(e => {});
         }
     }
@@ -592,17 +596,18 @@
         snd.play().catch(e => {});
     }
 
+    // Слушатель всех кликов для звука. Вызывается перед остальными return'ами.
     document.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('#btn-toggle-music')) { toggleMusic(); return; }
-        if (e.target.closest('#btn-toggle-sound')) { toggleSound(); return; }
+        if (e.target.closest('#btn-toggle-music')) { playSound('click'); toggleMusic(); return; }
+        if (e.target.closest('#btn-toggle-sound')) { playSound('click'); toggleSound(); return; }
         
-        // Звуки для кнопок, кроме кнопок способностей (refresh/bomb имеют свои звуки)
         if (e.target.closest('button') || e.target.closest('.level-card.unlocked') || e.target.closest('.level-card.completed') || e.target.closest('.game-card')) {
             if (e.target.closest('.no-click-sound')) return;
             playSound('click');
         }
     });
 
+    // Улучшенная синхронизация Облако <-> Локал
     if (window.vkBridge) {
         vkBridge.send('VKWebAppInit').then(() => {
             vkBridge.send('VKWebAppShowBannerAd', { banner_location: 'bottom' }).catch(()=>{});
@@ -618,40 +623,75 @@
 
             vkBridge.send("VKWebAppStorageGet", { "keys": ["bp_savedata_v6"] })
                 .then(data => {
+                    let cloudData = null;
                     if (data.keys && data.keys[0].value !== "") {
-                        try {
-                            let cloudSave = JSON.parse(data.keys[0].value);
-                            migrateOldSaves(); 
-                            if (cloudSave && cloudSave.updatedAt > (saveData.updatedAt || 0) + 5000) {
-                                document.getElementById('cloud-sync-modal').classList.remove('hide');
-                                document.getElementById('btn-sync-accept').onclick = () => {
-                                    saveData = cloudSave; applySaveDataToUI(); document.getElementById('cloud-sync-modal').classList.add('hide'); checkActiveSessionOnLoad();
-                                };
-                                document.getElementById('btn-sync-reject').onclick = () => {
-                                    document.getElementById('cloud-sync-modal').classList.add('hide'); saveLocalAndCloud(); checkActiveSessionOnLoad();
-                                };
-                            } else { applySaveDataToUI(); saveLocalAndCloud(); checkActiveSessionOnLoad(); }
-                        } catch(e) { migrateOldSaves(); applySaveDataToUI(); checkActiveSessionOnLoad(); }
-                    } else { migrateOldSaves(); applySaveDataToUI(); saveLocalAndCloud(); checkActiveSessionOnLoad(); }
-                })
-                .catch(e => { migrateOldSaves(); applySaveDataToUI(); checkActiveSessionOnLoad(); });
-        }).catch(() => { migrateOldSaves(); applySaveDataToUI(); checkActiveSessionOnLoad(); });
-    } else { migrateOldSaves(); applySaveDataToUI(); checkActiveSessionOnLoad(); }
+                        try { cloudData = JSON.parse(data.keys[0].value); } catch(e){}
+                    }
+                    
+                    let localData = null;
+                    try { localData = JSON.parse(localStorage.getItem('bp_savedata_v6')); } catch(e){}
 
-    function migrateOldSaves() {
-        const localV6 = localStorage.getItem('bp_savedata_v6');
-        if (localV6) { try { saveData = JSON.parse(localV6); return; } catch(e){} }
-        saveData.updatedAt = Date.now();
+                    // Сравниваем сохранения, защита от потери данных
+                    if (cloudData && localData) {
+                        if (cloudData.updatedAt > localData.updatedAt + 2000) {
+                            showCloudSync(cloudData, localData);
+                        } else if (localData.updatedAt > cloudData.updatedAt + 2000) {
+                            saveData = localData; saveLocalAndCloud(true); finishAppInit();
+                        } else {
+                            saveData = localData; finishAppInit();
+                        }
+                    } else if (cloudData) {
+                        saveData = cloudData; saveLocalAndCloud(true); finishAppInit();
+                    } else if (localData) {
+                        saveData = localData; saveLocalAndCloud(true); finishAppInit();
+                    } else {
+                        saveData.updatedAt = Date.now(); saveLocalAndCloud(true); finishAppInit();
+                    }
+                })
+                .catch(e => { fallbackLocalInit(); });
+        }).catch(() => { fallbackLocalInit(); });
+    } else { fallbackLocalInit(); }
+
+    function fallbackLocalInit() {
+        let localData = null;
+        try { localData = JSON.parse(localStorage.getItem('bp_savedata_v6')); } catch(e){}
+        if (localData) saveData = localData;
+        else saveData.updatedAt = Date.now();
+        finishAppInit();
+    }
+
+    function showCloudSync(cloudData, localData) {
+        document.getElementById('cloud-sync-modal').classList.remove('hide');
+        document.getElementById('btn-sync-accept').onclick = () => {
+            saveData = cloudData; document.getElementById('cloud-sync-modal').classList.add('hide'); saveLocalAndCloud(true); finishAppInit();
+        };
+        document.getElementById('btn-sync-reject').onclick = () => {
+            saveData = localData; document.getElementById('cloud-sync-modal').classList.add('hide'); saveLocalAndCloud(true); finishAppInit();
+        };
+    }
+
+    function finishAppInit() {
+        applySaveDataToUI();
+        if (saveData.activeSession) {
+            document.getElementById('resume-modal').classList.remove('hide');
+            document.getElementById('btn-resume-session').onclick = () => {
+                document.getElementById('resume-modal').classList.add('hide'); restoreSession();
+            };
+            document.getElementById('btn-restart-session').onclick = () => {
+                document.getElementById('resume-modal').classList.add('hide');
+                saveData.activeSession = null; saveLocalAndCloud(true);
+            };
+        }
     }
 
     let saveTimeout = null;
-    function saveLocalAndCloud() {
+    function saveLocalAndCloud(force = false) {
         saveData.updatedAt = Date.now();
         localStorage.setItem('bp_savedata_v6', JSON.stringify(saveData));
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
             if (window.vkBridge) vkBridge.send("VKWebAppStorageSet", { "key": "bp_savedata_v6", "value": JSON.stringify(saveData) }).catch(()=>{});
-        }, 1000);
+        }, force ? 0 : 1000);
     }
 
     function applySaveDataToUI() {
@@ -660,21 +700,8 @@
         updateDailyMenuUI(); updateAbilitiesUI(); initAudioUI();
     }
 
-    function checkActiveSessionOnLoad() {
-        if (saveData.activeSession) {
-            document.getElementById('resume-modal').classList.remove('hide');
-            document.getElementById('btn-resume-session').onclick = () => {
-                document.getElementById('resume-modal').classList.add('hide'); restoreSession();
-            };
-            document.getElementById('btn-restart-session').onclick = () => {
-                document.getElementById('resume-modal').classList.add('hide');
-                saveData.activeSession = null; saveLocalAndCloud();
-            };
-        }
-    }
-
     function saveActiveSession() {
-        if (currentMode === 'MENU') { saveData.activeSession = null; } 
+        if (currentMode === 'MENU') { return; } 
         else {
             saveData.activeSession = {
                 mode: currentMode, board: board, currentTray: currentTray.map(s => s ? { id: s.id, m: s.m, c: s.c } : null),
@@ -765,8 +792,12 @@
     });
 
     document.getElementById('games-btn').addEventListener('click', () => openGamesCatalog(false));
+    
+    // Обновлена логика кнопки "Поделиться"
     document.getElementById('share-btn').addEventListener('click', () => {
-        if (window.vkBridge) vkBridge.send('VKWebAppShare', { link: "https://vk.com/app" + APP_ID });
+        if (window.vkBridge) {
+            vkBridge.send('VKWebAppShare', { link: "https://vk.com/app" + APP_ID });
+        }
     });
 
     document.addEventListener('touchmove', function(e) { if (!e.target.closest('.scrollable')) e.preventDefault(); }, { passive: false });
@@ -1018,7 +1049,17 @@
         document.getElementById('btn-ability-bomb').addEventListener('click', onBombBtnClick);
         document.getElementById('btn-ability-refresh').addEventListener('click', onRefreshBtnClick);
         document.getElementById('btn-continue-ad').addEventListener('click', continueEndlessWithAd);
-        document.getElementById('btn-menu-endless').addEventListener('click', () => startMode('ENDLESS'));
+        
+        // Кнопка Бесконечный. Если есть сохранение — восстанавливаем. Если нет — стартуем новую
+        document.getElementById('btn-menu-endless').addEventListener('click', () => {
+            if (saveData.activeSession && saveData.activeSession.mode === 'ENDLESS') {
+                document.getElementById('resume-modal').classList.add('hide');
+                restoreSession();
+            } else {
+                startMode('ENDLESS');
+            }
+        });
+        
         document.getElementById('btn-menu-levels').addEventListener('click', openLevelsScreen);
         document.getElementById('btn-menu-daily').addEventListener('click', () => {
             const today = getMSKDateString(); if (saveData.dailyStatus.date === today && saveData.dailyStatus.completed) return; 
@@ -1373,7 +1414,8 @@
         let yOffset = 0;
         if (isTouchDrag) {
             let dy = dragStartY - cy; 
-            yOffset = Math.max(0, Math.min(100, dy * 0.8)); // Умный оффсет, плавно увеличивается при подъеме пальца
+            // УМНЫЙ ОФФСЕТ: до 312px по мере подъема пальца
+            yOffset = Math.max(0, Math.min(312, dy * 1.5));
         }
         
         dragGhost.style.left = `${ghostX}px`; dragGhost.style.top = `${cy - yOffset}px`;
@@ -1391,7 +1433,7 @@
 
         const cx = getClientX(e); const cy = getClientY(e);
         let yOffset = 0;
-        if (isTouchDrag) { let dy = dragStartY - cy; yOffset = Math.max(0, Math.min(100, dy * 0.8)); }
+        if (isTouchDrag) { let dy = dragStartY - cy; yOffset = Math.max(0, Math.min(312, dy * 1.5)); }
         
         const coords = getBoardCoordinates(cx, cy - yOffset, draggedShapeData.m);
         if (coords && isValidPlacement(draggedShapeData.m, coords.row, coords.col)) { placeShape(draggedShapeData, coords.row, coords.col); }
@@ -1594,7 +1636,9 @@
         let canPlay = currentTray.some(shapeObj => shapeObj && checkPlayability(shapeObj.m));
 
         if (!canPlay && currentTray.some(s => s !== null)) {
-            playGameOverSound(); saveData.activeSession = null; saveLocalAndCloud();
+            playGameOverSound(); 
+            saveData.activeSession = null; // Очищаем сессию, чтобы не загрузить мертвое состояние 
+            saveLocalAndCloud();
             setTimeout(() => {
                 document.getElementById('final-score').innerText = score;
                 const badge = document.getElementById('new-record-badge');
@@ -1607,7 +1651,6 @@
         }
     }
 
-    initApp();
 </script>
 </body>
 </html>
