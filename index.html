@@ -61,7 +61,6 @@
             position: absolute; top: 0; left: 0; transform-origin: top left;
         }
 
-        /* КООРДИНАТЫ БЛОКОВ */
         .s-red { width: 78px; height: 79px; background-position: -521px -75px; transform: scale(calc(100cqi / 78)); }
         .s-orange { width: 78px; height: 79px; background-position: -613px -75px; transform: scale(calc(100cqi / 78)); }
         .s-yellow { width: 78px; height: 79px; background-position: -704px -75px; transform: scale(calc(100cqi / 78)); }
@@ -76,9 +75,7 @@
         #game-board {
             display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
             background-color: rgba(30, 41, 59, 0.85); padding: 4px; border-radius: 8px;
-            width: 100%; 
-            max-width: min(100%, 55vh); /* Адаптивность, чтобы не закрывало верх */
-            aspect-ratio: 1 / 1; margin: 0 auto;
+            width: 100%; max-width: min(100%, 55vh); aspect-ratio: 1 / 1; margin: 0 auto;
             box-shadow: inset 0 4px 6px -1px rgba(0, 0, 0, 0.5); position: relative;
         }
 
@@ -123,7 +120,6 @@
         @keyframes shakeRock { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-3px) rotate(-3deg); } 40% { transform: translateX(3px) rotate(3deg); } 60% { transform: translateX(-3px) rotate(-3deg); } 80% { transform: translateX(3px) rotate(3deg); } }
         @keyframes starPulse { from { transform: scale(0.85); opacity: 0.75; } to { transform: scale(1.15); opacity: 1; } }
 
-        /* Адаптивный поднос */
         #tray { display: flex; justify-content: center; align-items: center; gap: 15px; height: min(120px, 15vh); width: 100%; max-width: 400px; }
         .tray-slot {
             width: min(90px, 12vh); height: min(90px, 12vh); display: flex; justify-content: center; align-items: center; position: relative;
@@ -179,32 +175,6 @@
         <h2 class="text-3xl font-bold text-white mb-2">Загрузка рекламы...</h2>
         <div class="mt-8 w-64 h-2 bg-slate-800 rounded-full overflow-hidden">
             <div id="ad-progress" class="h-full bg-blue-500 w-0"></div>
-        </div>
-    </div>
-
-    <!-- Модальное окно восстановления сессии -->
-    <div id="resume-modal" class="fixed inset-0 bg-slate-900/95 flex items-center justify-center p-4 z-[90] hide modal-overlay backdrop-blur-md">
-        <div class="bg-slate-800 p-8 rounded-3xl border border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.3)] w-full max-w-sm text-center relative modal-content">
-            <div class="text-6xl mb-4">💾</div>
-            <h2 class="text-2xl font-bold text-white mb-2">Найдена игра</h2>
-            <p class="text-slate-400 mb-8 text-sm">У вас есть сохраненный прогресс. Хотите продолжить с того же места?</p>
-            <div class="flex flex-col gap-3 w-full">
-                <button id="btn-resume-session" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl text-lg shadow-lg active:scale-95 transition">Продолжить</button>
-                <button id="btn-restart-session" class="w-full bg-slate-700 hover:bg-slate-600 text-red-400 font-bold py-4 rounded-2xl text-lg shadow-lg active:scale-95 transition">Сбросить</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Облачная синхронизация -->
-    <div id="cloud-sync-modal" class="fixed inset-0 bg-slate-900/95 flex items-center justify-center p-4 z-[95] hide modal-overlay backdrop-blur-md">
-        <div class="bg-slate-800 p-8 rounded-3xl border border-green-500/30 shadow-[0_0_40px_rgba(16,185,129,0.3)] w-full max-w-sm text-center relative modal-content">
-            <div class="text-6xl mb-4">☁️</div>
-            <h2 class="text-2xl font-bold text-green-400 mb-2 leading-tight">Облачное<br>сохранение</h2>
-            <p class="text-slate-300 mb-8 text-sm">Найдено сохранение с другого устройства. Загрузить прогресс сюда?</p>
-            <div class="flex flex-col gap-3 w-full">
-                <button id="btn-sync-accept" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl text-lg shadow-lg active:scale-95 transition">Загрузить из облака</button>
-                <button id="btn-sync-reject" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-4 rounded-2xl text-lg shadow-lg active:scale-95 transition">Оставить локальное</button>
-            </div>
         </div>
     </div>
 
@@ -465,7 +435,7 @@
     </div>
 
 <script>
-    const APP_ID = 54692847; // ID Игры для репоста обновлен
+    const APP_ID = 54692847;
 
     let saveData = {
         updatedAt: 0, bestScore: 0, bombCount: 5, refreshCount: 5,
@@ -480,6 +450,7 @@
     let isMusicMuted = localStorage.getItem('bp_musicMuted') === 'true';
     let isSoundMuted = localStorage.getItem('bp_soundMuted') === 'true';
 
+    // ЗВУКИ: Используем try/catch для предотвращения ошибок
     const sounds = {
         bgm: new Audio('fon-6.mp3'),
         bomb: new Audio('booom2_korotki.mp3'),
@@ -506,7 +477,10 @@
         isMusicMuted = !isMusicMuted;
         localStorage.setItem('bp_musicMuted', isMusicMuted);
         if (isMusicMuted) sounds.bgm.pause();
-        else if (isBgmStarted) sounds.bgm.play().catch(e=>console.log(e));
+        else if (isBgmStarted) {
+            let p = sounds.bgm.play();
+            if (p !== undefined) p.catch(e => {});
+        }
         initAudioUI();
     }
 
@@ -518,29 +492,34 @@
 
     function startBgm() {
         if (!isBgmStarted && !isMusicMuted) {
-            sounds.bgm.play().then(() => {
-                isBgmStarted = true;
-                document.removeEventListener('pointerdown', startBgm);
-            }).catch(e => console.log('BGM wait...'));
+            let p = sounds.bgm.play();
+            if (p !== undefined) {
+                p.then(() => { isBgmStarted = true; }).catch(e => {});
+            }
         }
     }
     
     function playSound(name) {
-        if (isSoundMuted) return;
-        if (sounds[name]) {
+        if (isSoundMuted || !sounds[name]) return;
+        try {
             const snd = sounds[name].cloneNode();
             snd.volume = sounds[name].volume || 1;
-            snd.play().catch(e => {});
-        }
+            let p = snd.play();
+            if (p !== undefined) p.catch(e => {});
+        } catch(e) {}
     }
 
     function playGameOverSound() {
         if (isSoundMuted) return;
-        const index = Math.floor(Math.random() * sounds.gameOverList.length);
-        const snd = new Audio(sounds.gameOverList[index]);
-        snd.play().catch(e => {});
+        try {
+            const index = Math.floor(Math.random() * sounds.gameOverList.length);
+            const snd = new Audio(sounds.gameOverList[index]);
+            let p = snd.play();
+            if (p !== undefined) p.catch(e => {});
+        } catch(e) {}
     }
 
+    // ИНИЦИАЛИЗАЦИЯ И СИНХРОНИЗАЦИЯ БЕЗ ОКОН
     function initVKAndData() {
         if (window.vkBridge) {
             vkBridge.send('VKWebAppInit').then(() => {
@@ -564,27 +543,16 @@
                         let localData = null;
                         try { localData = JSON.parse(localStorage.getItem('bp_savedata_v6')); } catch(e){}
 
+                        // АВТО-ВЫБОР НОВЕЙШЕГО СОХРАНЕНИЯ БЕЗ ОКОН
                         if (cloudData && localData) {
-                            if (cloudData.updatedAt > localData.updatedAt + 2000) {
-                                document.getElementById('cloud-sync-modal').classList.remove('hide');
-                                document.getElementById('btn-sync-accept').onclick = () => {
-                                    saveData = cloudData; saveLocalAndCloud(true); finishDataInit();
-                                };
-                                document.getElementById('btn-sync-reject').onclick = () => {
-                                    saveData = localData; saveLocalAndCloud(true); finishDataInit();
-                                };
-                                return; // Ждем ответа пользователя
-                            } else if (localData.updatedAt > cloudData.updatedAt + 2000) {
-                                saveData = localData; saveLocalAndCloud(true);
-                            } else {
-                                saveData = localData;
-                            }
+                            if (cloudData.updatedAt > localData.updatedAt) saveData = cloudData;
+                            else saveData = localData;
                         } else if (cloudData) {
-                            saveData = cloudData; saveLocalAndCloud(true);
+                            saveData = cloudData;
                         } else if (localData) {
-                            saveData = localData; saveLocalAndCloud(true);
+                            saveData = localData;
                         } else {
-                            saveData.updatedAt = Date.now(); saveLocalAndCloud(true);
+                            saveData.updatedAt = Date.now();
                         }
                         finishDataInit();
                     })
@@ -603,28 +571,32 @@
 
     function finishDataInit() {
         applySaveDataToUI();
-        document.getElementById('cloud-sync-modal').classList.add('hide');
+        saveLocalAndCloud(true);
         
+        // АВТОВОССТАНОВЛЕНИЕ СЕССИИ, ЕСЛИ ОНА ЕСТЬ
         if (saveData.activeSession) {
-            document.getElementById('resume-modal').classList.remove('hide');
-            document.getElementById('btn-resume-session').onclick = () => {
-                document.getElementById('resume-modal').classList.add('hide'); restoreSession();
-            };
-            document.getElementById('btn-restart-session').onclick = () => {
-                document.getElementById('resume-modal').classList.add('hide');
-                saveData.activeSession = null; saveLocalAndCloud(true);
-            };
+            restoreSession();
+        } else {
+            document.getElementById('main-menu').classList.remove('hide');
         }
     }
 
-    let saveTimeout = null;
+    let saveTimeoutVK = null;
+    let saveTimeoutLocal = null;
     function saveLocalAndCloud(force = false) {
         saveData.updatedAt = Date.now();
-        localStorage.setItem('bp_savedata_v6', JSON.stringify(saveData));
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(() => {
+        
+        // Локальное сохранение (моментально)
+        clearTimeout(saveTimeoutLocal);
+        saveTimeoutLocal = setTimeout(() => {
+            localStorage.setItem('bp_savedata_v6', JSON.stringify(saveData));
+        }, 100);
+
+        // Облачное сохранение (с задержкой в 3 секунды, чтобы избежать лимита запросов ВК)
+        clearTimeout(saveTimeoutVK);
+        saveTimeoutVK = setTimeout(() => {
             if (window.vkBridge) vkBridge.send("VKWebAppStorageSet", { "key": "bp_savedata_v6", "value": JSON.stringify(saveData) }).catch(()=>{});
-        }, force ? 0 : 1000);
+        }, force ? 100 : 3000);
     }
 
     function applySaveDataToUI() {
@@ -656,6 +628,7 @@
         lvlMaxComboReached = s.lvlMaxComboReached || 0; lvlSpecialCurrent = s.lvlSpecialCurrent || 0; lvlRocksCurrent = s.lvlRocksCurrent || 0;
         specialCells = new Set(s.specialCells || []); rocks = new Map(s.rocks || []);
 
+        hasPlayedOnce = true;
         document.getElementById('main-menu').classList.add('hide'); document.getElementById('levels-screen').classList.add('hide'); hideAllModals();
 
         if (currentMode === 'ENDLESS') {
@@ -1013,10 +986,11 @@
         
         const ghostX = getClientX(e); const cy = getClientY(e);
         let yOffset = 0;
+        
+        // Умный оффсет с плавной кривой (асимптота к 312px)
         if (isTouchDrag) {
-            let dy = dragStartY - cy; 
-            // Умный оффсет, плавно увеличивается при подъеме пальца до 312px
-            yOffset = Math.max(0, Math.min(312, dy * 1.5)); 
+            let dy = Math.max(0, dragStartY - cy);
+            yOffset = 312 * (1 - Math.exp(-dy / 250)); 
         }
         
         dragGhost.style.left = `${ghostX}px`; dragGhost.style.top = `${cy - yOffset}px`;
@@ -1034,7 +1008,10 @@
 
         const cx = getClientX(e); const cy = getClientY(e);
         let yOffset = 0;
-        if (isTouchDrag) { let dy = dragStartY - cy; yOffset = Math.max(0, Math.min(312, dy * 1.5)); }
+        if (isTouchDrag) { 
+            let dy = Math.max(0, dragStartY - cy);
+            yOffset = 312 * (1 - Math.exp(-dy / 250)); 
+        }
         
         const coords = getBoardCoordinates(cx, cy - yOffset, draggedShapeData.m);
         if (coords && isValidPlacement(draggedShapeData.m, coords.row, coords.col)) { placeShape(draggedShapeData, coords.row, coords.col); }
@@ -1246,6 +1223,72 @@
         }
     }
 
+    function animateClear(r, c, snapshot) {
+        const cell = document.getElementById(`cell-${r}-${c}`);
+        if(cell) {
+            cell.classList.add('clearing'); cell.classList.remove('is-special'); 
+            if (!rocks.has(`${r}-${c}`)) { cell.classList.remove('rock-cell', 'rock-tough', 'rock-cracked'); }
+            setTimeout(() => {
+                if (snapshot !== gameSessionId) return;
+                cell.classList.remove('filled', 'clearing'); cell.style.backgroundColor = '';
+                const sprite = cell.querySelector('.sprite-element'); if (sprite) sprite.remove();
+            }, 250);
+        }
+    }
+
+    function updateEndlessUI() {
+        document.getElementById('score-display').innerText = score;
+        if (score > saveData.bestScore) { saveData.bestScore = score; saveLocalAndCloud(); document.getElementById('best-display').innerText = saveData.bestScore; }
+        
+        let newLevel = Math.floor(score / 1000) + 1; let levelProgressVal = score % 1000;
+        if (newLevel > endlessLevel) {
+            endlessLevel = newLevel; showFloatingText(`Уровень ${endlessLevel}!`, document.body.clientWidth/2, boardEl.getBoundingClientRect().top - 20);
+            if (endlessLevel % 5 === 0) { showRewardModal(); }
+        }
+        document.getElementById('level-display').innerText = endlessLevel;
+        document.getElementById('level-bar').style.width = `${Math.min((levelProgressVal / 1000) * 100, 100)}%`;
+    }
+
+    function showFloatingText(text, x, y) {
+        const el = document.createElement('div'); el.className = 'float-text'; el.innerText = text; el.style.left = `${x}px`; el.style.top = `${y}px`;
+        document.body.appendChild(el); setTimeout(() => el.remove(), 1000);
+    }
+
+    function checkPlayability(shape) {
+        for (let r = 0; r < BOARD_SIZE; r++) { for (let c = 0; c < BOARD_SIZE; c++) { if (isValidPlacement(shape, r, c)) return true; } } return false;
+    }
+
+    function checkGameOverEndless() {
+        if (currentMode !== 'ENDLESS') return;
+        let canPlay = currentTray.some(shapeObj => shapeObj && checkPlayability(shapeObj.m));
+
+        if (!canPlay && currentTray.some(s => s !== null)) {
+            playGameOverSound(); saveData.activeSession = null; saveLocalAndCloud();
+            setTimeout(() => {
+                document.getElementById('final-score').innerText = score;
+                const badge = document.getElementById('new-record-badge');
+                if (score >= saveData.bestScore && score > 0) badge.classList.remove('hide'); else badge.classList.add('hide');
+                const btnContinueAd = document.getElementById('btn-continue-ad');
+                if (!hasContinuedEndless) { btnContinueAd.classList.remove('hide'); } else { btnContinueAd.classList.add('hide'); }
+                document.getElementById('game-over-modal').classList.remove('hide');
+                checkNotificationsRequest();
+            }, 1200);
+        }
+    }
+
+    function continueEndlessWithAd() {
+        showAd(() => {
+            document.getElementById('game-over-modal').classList.add('hide'); hasContinuedEndless = true; 
+            let filled = [];
+            for(let r=0; r<BOARD_SIZE; r++){ for(let c=0; c<BOARD_SIZE; c++){ if(board[r][c] !== null && !rocks.has(`${r}-${c}`)) filled.push({r,c}); } }
+            filled.sort(() => Math.random() - 0.5); let toClear = filled.slice(0, Math.ceil(filled.length / 2));
+            
+            let snapshot = ++gameSessionId;
+            toClear.forEach(cell => { board[cell.r][cell.c] = null; animateClear(cell.r, cell.c, snapshot); });
+            doRefreshTray(); score += toClear.length * 10; updateEndlessUI(); saveActiveSession();
+        });
+    }
+
     function startMode(mode, forceRestart = false) {
         gameSessionId++; resetDragState(); currentMode = mode; isBombActive = false; updateAbilitiesUI(); hasPlayedOnce = true;
         document.getElementById('main-menu').classList.add('hide'); document.getElementById('levels-screen').classList.add('hide'); hideAllModals();
@@ -1273,8 +1316,9 @@
     }
 
     function hideAllModals() {
-        ['pause-modal', 'game-over-modal', 'level-win-modal', 'level-fail-modal', 'reward-modal', 'ad-modal', 'cloud-sync-modal', 'resume-modal', 'games-modal'].forEach(id => {
-            document.getElementById(id).classList.add('hide');
+        ['pause-modal', 'game-over-modal', 'level-win-modal', 'level-fail-modal', 'reward-modal', 'ad-modal', 'games-modal'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.classList.add('hide');
         });
         isPausedOrig = false;
     }
@@ -1451,81 +1495,13 @@
         container.innerHTML = html; document.getElementById('level-fail-modal').classList.remove('hide'); isProcessing = false; checkNotificationsRequest();
     }
 
-    function animateClear(r, c, snapshot) {
-        const cell = document.getElementById(`cell-${r}-${c}`);
-        if(cell) {
-            cell.classList.add('clearing'); cell.classList.remove('is-special'); 
-            if (!rocks.has(`${r}-${c}`)) { cell.classList.remove('rock-cell', 'rock-tough', 'rock-cracked'); }
-            setTimeout(() => {
-                if (snapshot !== gameSessionId) return;
-                cell.classList.remove('filled', 'clearing'); cell.style.backgroundColor = '';
-                const sprite = cell.querySelector('.sprite-element'); if (sprite) sprite.remove();
-            }, 250);
-        }
-    }
-
-    function updateEndlessUI() {
-        document.getElementById('score-display').innerText = score;
-        if (score > saveData.bestScore) { saveData.bestScore = score; saveLocalAndCloud(); document.getElementById('best-display').innerText = saveData.bestScore; }
-        
-        let newLevel = Math.floor(score / 1000) + 1; let levelProgressVal = score % 1000;
-        if (newLevel > endlessLevel) {
-            endlessLevel = newLevel; showFloatingText(`Уровень ${endlessLevel}!`, document.body.clientWidth/2, boardEl.getBoundingClientRect().top - 20);
-            if (endlessLevel % 5 === 0) { showRewardModal(); }
-        }
-        document.getElementById('level-display').innerText = endlessLevel;
-        document.getElementById('level-bar').style.width = `${Math.min((levelProgressVal / 1000) * 100, 100)}%`;
-    }
-
-    function showFloatingText(text, x, y) {
-        const el = document.createElement('div'); el.className = 'float-text'; el.innerText = text; el.style.left = `${x}px`; el.style.top = `${y}px`;
-        document.body.appendChild(el); setTimeout(() => el.remove(), 1000);
-    }
-
-    function checkPlayability(shape) {
-        for (let r = 0; r < BOARD_SIZE; r++) { for (let c = 0; c < BOARD_SIZE; c++) { if (isValidPlacement(shape, r, c)) return true; } } return false;
-    }
-
-    function checkGameOverEndless() {
-        if (currentMode !== 'ENDLESS') return;
-        let canPlay = currentTray.some(shapeObj => shapeObj && checkPlayability(shapeObj.m));
-
-        if (!canPlay && currentTray.some(s => s !== null)) {
-            playGameOverSound(); saveData.activeSession = null; saveLocalAndCloud();
-            setTimeout(() => {
-                document.getElementById('final-score').innerText = score;
-                const badge = document.getElementById('new-record-badge');
-                if (score >= saveData.bestScore && score > 0) badge.classList.remove('hide'); else badge.classList.add('hide');
-                const btnContinueAd = document.getElementById('btn-continue-ad');
-                if (!hasContinuedEndless) { btnContinueAd.classList.remove('hide'); } else { btnContinueAd.classList.add('hide'); }
-                document.getElementById('game-over-modal').classList.remove('hide');
-                checkNotificationsRequest();
-            }, 1200);
-        }
-    }
-
-    function continueEndlessWithAd() {
-        showAd(() => {
-            document.getElementById('game-over-modal').classList.add('hide'); hasContinuedEndless = true; 
-            let filled = [];
-            for(let r=0; r<BOARD_SIZE; r++){ for(let c=0; c<BOARD_SIZE; c++){ if(board[r][c] !== null && !rocks.has(`${r}-${c}`)) filled.push({r,c}); } }
-            filled.sort(() => Math.random() - 0.5); let toClear = filled.slice(0, Math.ceil(filled.length / 2));
-            
-            let snapshot = ++gameSessionId;
-            toClear.forEach(cell => { board[cell.r][cell.c] = null; animateClear(cell.r, cell.c, snapshot); });
-            doRefreshTray(); score += toClear.length * 10; updateEndlessUI(); saveActiveSession();
-        });
-    }
-
     function initApp() {
         document.getElementById('btn-ability-bomb').addEventListener('click', onBombBtnClick);
         document.getElementById('btn-ability-refresh').addEventListener('click', onRefreshBtnClick);
         document.getElementById('btn-continue-ad').addEventListener('click', continueEndlessWithAd);
         
         document.getElementById('btn-menu-endless').addEventListener('click', () => {
-            if (saveData.activeSession && saveData.activeSession.mode === 'ENDLESS') {
-                document.getElementById('resume-modal').classList.add('hide'); restoreSession();
-            } else { startMode('ENDLESS'); }
+            startMode('ENDLESS');
         });
         
         document.getElementById('btn-menu-levels').addEventListener('click', openLevelsScreen);
@@ -1575,8 +1551,10 @@
             if (window.vkBridge) vkBridge.send('VKWebAppShare', { link: "https://vk.com/app" + APP_ID });
         });
 
-        // Централизованный звук клика по всем кнопкам
+        // ЦЕНТРАЛИЗОВАННЫЙ ОБРАБОТЧИК КЛИКОВ ДЛЯ ЗВУКОВ
         document.addEventListener('pointerdown', (e) => {
+            startBgm(); // При первом клике запускается фоновая музыка
+
             if (e.target.closest('#btn-toggle-music')) { toggleMusic(); playSound('click'); return; }
             if (e.target.closest('#btn-toggle-sound')) { toggleSound(); playSound('click'); return; }
             
@@ -1587,10 +1565,9 @@
         });
     }
 
-    // Запускаем инициализацию при загрузке документа
     document.addEventListener("DOMContentLoaded", () => {
-        initApp(); // Все кнопки становятся кликабельными
-        initVKAndData(); // Начинаем загрузку данных и ВК
+        initApp();
+        initVKAndData();
     });
 </script>
 </body>
