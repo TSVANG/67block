@@ -206,7 +206,6 @@
             </div>
 
             <div class="flex flex-col gap-3 w-full">
-                <!-- Убрана надпись Рекорд -->
                 <button id="btn-menu-endless" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold py-5 rounded-2xl text-xl shadow-[0_4px_15px_rgba(59,130,246,0.5)] active:scale-95 transition flex justify-center items-center">
                     <span>БЕСКОНЕЧНЫЙ</span>
                 </button>
@@ -216,7 +215,6 @@
                     <span class="text-xs font-normal text-green-200 mt-1">3 этапа подряд</span>
                 </button>
 
-                <!-- Убрана надпись Головоломки -->
                 <button id="btn-menu-levels" class="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-bold py-5 rounded-2xl text-xl shadow-[0_4px_15px_rgba(168,85,247,0.5)] active:scale-95 transition flex justify-center items-center">
                     <span>УРОВНИ</span>
                 </button>
@@ -437,24 +435,43 @@
 <script>
     const APP_ID = 54692847;
 
-    // Расширенная модель данных для сохранения сессий по режимам
     let saveData = {
         updatedAt: 0, bestScore: 0, bombCount: 5, refreshCount: 5,
         levelProgress: { 1: { unlocked: true } },
         dailyStatus: { date: '', completed: false },
-        vkNotifRequested: false,
-        endlessSession: null,
-        levelSession: null,
-        lastActiveMode: 'MENU'
+        activeSession: null, vkNotifRequested: false
     };
 
     let levelsCompletedSession = 0;
     let hasPlayedOnce = false;
+    let isGameOverState = false; // Флаг для контроля состояний (чтобы не сохранять мертвую доску)
 
     let isMusicMuted = localStorage.getItem('bp_musicMuted') === 'true';
     let isSoundMuted = localStorage.getItem('bp_soundMuted') === 'true';
 
-    // ЗВУКИ
+    // Функция предзагрузки звуков в кэш
+    function preloadAudioFiles() {
+        const audioFilesToCache = [
+            'fon-6.mp3', 'booom2_korotki.mp3', 'zamena.wav', 'pesok-1.mp3',
+            'stone1.mp3', 'tresk.mp3', 'final.mp3', 'clik2.mp3',
+            'game-over-1.mp3', 'game-over-2.mp3', 'game-over-3.mp3', 'game-over-4.wav'
+        ];
+        // Выполняем фоновый fetch для добавления файлов в HTTP кэш браузера
+        audioFilesToCache.forEach(file => {
+            fetch(file, { cache: 'force-cache' }).catch(() => {});
+        });
+        
+        // Устанавливаем preload='auto' на уже созданных аудио объектах
+        for (let key in sounds) {
+            if (sounds[key] instanceof Audio) {
+                sounds[key].preload = 'auto';
+            } else if (Array.isArray(sounds[key])) {
+                sounds[key].forEach(a => { if (a instanceof Audio) a.preload = 'auto'; });
+            }
+        }
+    }
+
+    // ЗВУКИ: Пересобрано для удобной работы и предзагрузки
     const sounds = {
         bgm: new Audio('fon-6.mp3'),
         bomb: new Audio('booom2_korotki.mp3'),
@@ -463,8 +480,13 @@
         clear: new Audio('stone1.mp3'),
         crack: new Audio('tresk.mp3'),
         win: new Audio('final.mp3'),
-        click: new Audio('clik2.mp3'), // Новое аудио
-        gameOverList: ['game-over-1.mp3', 'game-over-2.mp3', 'game-over-3.mp3', 'game-over-4.wav'] // Обновлено расширение
+        click: new Audio('clik2.mp3'), // Новое аудио клика
+        gameOverList: [
+            new Audio('game-over-1.mp3'),
+            new Audio('game-over-2.mp3'),
+            new Audio('game-over-3.mp3'),
+            new Audio('game-over-4.wav') // Измененное расширение
+        ]
     };
     sounds.bgm.loop = true;
     sounds.bgm.volume = 0.4;
@@ -502,7 +524,7 @@
             }
         }
     }
-
+    
     function pauseBgm() {
         if (isBgmStarted && !isMusicMuted) {
             sounds.bgm.pause();
@@ -530,7 +552,7 @@
         if (isSoundMuted) return;
         try {
             const index = Math.floor(Math.random() * sounds.gameOverList.length);
-            const snd = new Audio(sounds.gameOverList[index]);
+            const snd = sounds.gameOverList[index].cloneNode();
             let p = snd.play();
             if (p !== undefined) p.catch(e => {});
         } catch(e) {}
@@ -549,10 +571,10 @@
                     } 
                     if (e.detail.type === 'VKWebAppViewHide') {
                         pauseBgm();
-                        if (currentMode !== 'MENU') {
-                            saveSessionData();
-                            saveLocalAndCloud(true); // Принудительно сохраняем при скрытии
+                        if (currentMode !== 'MENU' && !isGameOverState) {
+                            saveActiveSession();
                         }
+                        saveLocalAndCloud(true);
                     }
                     if (e.detail.type === 'VKWebAppViewRestore') {
                         resumeBgm();
@@ -569,6 +591,7 @@
                         let localData = null;
                         try { localData = JSON.parse(localStorage.getItem('bp_savedata_v6')); } catch(e){}
 
+                        // АВТО-ВЫБОР НОВЕЙШЕГО СОХРАНЕНИЯ
                         if (cloudData && localData) {
                             if (cloudData.updatedAt > localData.updatedAt) saveData = cloudData;
                             else saveData = localData;
@@ -595,21 +618,15 @@
     }
 
     function finishDataInit() {
-        // Миграция со старого activeSession на новый формат, если пользователь играл до обновления
-        if (saveData.activeSession) {
-            if (saveData.activeSession.mode === 'ENDLESS') {
-                saveData.endlessSession = saveData.activeSession;
-            } else if (saveData.activeSession.mode === 'LEVELS') {
-                saveData.levelSession = saveData.activeSession;
-            }
-            delete saveData.activeSession;
-            saveLocalAndCloud(true);
-        }
-
         applySaveDataToUI();
-
-        // Всегда показываем меню при входе (как просил пользователь), но сохраняем возможность войти в игру
-        document.getElementById('main-menu').classList.remove('hide');
+        saveLocalAndCloud(true);
+        
+        // АВТОВОССТАНОВЛЕНИЕ СЕССИИ (если есть активная игра и не было Game Over)
+        if (saveData.activeSession) {
+            restoreSession();
+        } else {
+            document.getElementById('main-menu').classList.remove('hide');
+        }
     }
 
     let saveTimeoutVK = null;
@@ -617,118 +634,66 @@
     function saveLocalAndCloud(force = false) {
         saveData.updatedAt = Date.now();
         
-        const doSave = () => {
-            localStorage.setItem('bp_savedata_v6', JSON.stringify(saveData));
-            if (window.vkBridge) vkBridge.send("VKWebAppStorageSet", { "key": "bp_savedata_v6", "value": JSON.stringify(saveData) }).catch(()=>{});
-        };
+        // Локальное сохранение (моментально)
+        clearTimeout(saveTimeoutLocal);
+        const doSaveLocal = () => { localStorage.setItem('bp_savedata_v6', JSON.stringify(saveData)); };
+        if (force) doSaveLocal(); else saveTimeoutLocal = setTimeout(doSaveLocal, 100);
 
-        if (force) {
-            clearTimeout(saveTimeoutLocal);
-            clearTimeout(saveTimeoutVK);
-            doSave();
-        } else {
-            clearTimeout(saveTimeoutLocal);
-            saveTimeoutLocal = setTimeout(() => {
-                localStorage.setItem('bp_savedata_v6', JSON.stringify(saveData));
-            }, 100);
-
-            clearTimeout(saveTimeoutVK);
-            saveTimeoutVK = setTimeout(() => {
-                if (window.vkBridge) vkBridge.send("VKWebAppStorageSet", { "key": "bp_savedata_v6", "value": JSON.stringify(saveData) }).catch(()=>{});
-            }, 3000); // 3 секунды задержка для обычного сохранения в облако, чтобы не спамить API
-        }
+        // Облачное сохранение (с задержкой в 3 секунды, чтобы избежать лимита запросов ВК)
+        clearTimeout(saveTimeoutVK);
+        const doSaveCloud = () => { if (window.vkBridge) vkBridge.send("VKWebAppStorageSet", { "key": "bp_savedata_v6", "value": JSON.stringify(saveData) }).catch(()=>{}); };
+        if (force) doSaveCloud(); else saveTimeoutVK = setTimeout(doSaveCloud, 3000);
     }
 
     function applySaveDataToUI() {
-        // Теперь здесь нет ошибки, так как мы проверяем наличие элементов на экране (меню-рекорд убран)
-        const bestDisplay = document.getElementById('best-display');
-        if (bestDisplay) bestDisplay.innerText = saveData.bestScore || 0;
-        
-        updateDailyMenuUI(); 
-        updateAbilitiesUI(); 
-        initAudioUI();
+        const bestScoreElem = document.getElementById('menu-best-score');
+        if (bestScoreElem) bestScoreElem.innerText = saveData.bestScore || 0;
+        document.getElementById('best-display').innerText = saveData.bestScore || 0;
+        updateDailyMenuUI(); updateAbilitiesUI(); initAudioUI();
     }
 
-    function saveSessionData() {
-        if (currentMode === 'ENDLESS') {
-            saveData.endlessSession = {
-                board: board,
-                currentTray: currentTray.map(s => s ? { id: s.id, m: s.m, c: s.c } : null),
-                score: score, combo: combo, endlessLevel: endlessLevel, hasContinuedEndless: hasContinuedEndless,
-                specialCells: Array.from(specialCells), rocks: Array.from(rocks.entries())
-            };
-        } else if (currentMode === 'LEVELS') {
-            saveData.levelSession = {
-                currentLevelId: currentLevelId,
-                board: board,
-                currentTray: currentTray.map(s => s ? { id: s.id, m: s.m, c: s.c } : null),
-                combo: combo, lvlMovesLeft: lvlMovesLeft, lvlMovesUsed: lvlMovesUsed,
-                lvlLinesCurrent: lvlLinesCurrent, lvlRowsCurrent: lvlRowsCurrent, lvlColsCurrent: lvlColsCurrent,
-                lvlMaxComboReached: lvlMaxComboReached, lvlSpecialCurrent: lvlSpecialCurrent, lvlRocksCurrent: lvlRocksCurrent,
+    function saveActiveSession() {
+        if (isGameOverState) return; // Не перезаписываем сохранение, если игра уже проиграна или завершена
+        if (currentMode === 'MENU') { saveData.activeSession = null; } 
+        else {
+            saveData.activeSession = {
+                mode: currentMode, board: board, currentTray: currentTray.map(s => s ? { id: s.id, m: s.m, c: s.c } : null),
+                score, combo, endlessLevel, hasContinuedEndless, currentLevelId, lvlMovesLeft, lvlMovesUsed, 
+                lvlLinesCurrent, lvlRowsCurrent, lvlColsCurrent, lvlMaxComboReached, lvlSpecialCurrent, lvlRocksCurrent,
                 specialCells: Array.from(specialCells), rocks: Array.from(rocks.entries())
             };
         }
         saveLocalAndCloud();
     }
 
-    function restoreEndlessSession() {
-        gameSessionId++; resetDragState(); currentMode = 'ENDLESS'; isBombActive = false; updateAbilitiesUI(); hasPlayedOnce = true;
+    function restoreSession() {
+        const s = saveData.activeSession;
+        if (!s) return;
+        isGameOverState = false;
+        currentMode = s.mode; board = s.board; currentTray = s.currentTray.map(t => t ? ALL_SHAPES.find(shape => shape.id === t.id) || t : null);
+        score = s.score || 0; combo = s.combo || 0; endlessLevel = s.endlessLevel || 1; hasContinuedEndless = s.hasContinuedEndless || false;
+        currentLevelId = s.currentLevelId; lvlMovesLeft = s.lvlMovesLeft || 0; lvlMovesUsed = s.lvlMovesUsed || 0;
+        lvlLinesCurrent = s.lvlLinesCurrent || 0; lvlRowsCurrent = s.lvlRowsCurrent || 0; lvlColsCurrent = s.lvlColsCurrent || 0;
+        lvlMaxComboReached = s.lvlMaxComboReached || 0; lvlSpecialCurrent = s.lvlSpecialCurrent || 0; lvlRocksCurrent = s.lvlRocksCurrent || 0;
+        specialCells = new Set(s.specialCells || []); rocks = new Map(s.rocks || []);
+
+        hasPlayedOnce = true;
         document.getElementById('main-menu').classList.add('hide'); document.getElementById('levels-screen').classList.add('hide'); hideAllModals();
-        
-        const s = saveData.endlessSession;
-        board = s.board;
-        currentTray = s.currentTray.map(t => t ? ALL_SHAPES.find(shape => shape.id === t.id) || t : null);
-        score = s.score || 0;
-        combo = s.combo || 0;
-        endlessLevel = s.endlessLevel || 1;
-        hasContinuedEndless = s.hasContinuedEndless || false;
-        specialCells = new Set(s.specialCells || []);
-        rocks = new Map(s.rocks || []);
-        movesSinceLastClear = 999; forceClearCombo();
 
-        saveData.lastActiveMode = 'ENDLESS';
-        
-        document.getElementById('ui-endless').classList.remove('hide'); document.getElementById('ui-endless-bar').classList.remove('hide');
-        document.getElementById('ui-levels').classList.add('hide');
+        if (currentMode === 'ENDLESS') {
+            document.getElementById('ui-endless').classList.remove('hide'); document.getElementById('ui-endless-bar').classList.remove('hide');
+            document.getElementById('ui-levels').classList.add('hide');
+            updateEndlessUI();
+        } else {
+            const data = getLevelData(currentLevelId);
+            lvlLinesTarget = data.target || 0; lvlRowsTarget = data.targetRows || 0; lvlColsTarget = data.targetCols || 0;
+            lvlComboTarget = data.targetCombo || 0; lvlSpecialTarget = data.targetSpecial || 0; lvlRocksTarget = data.targetRocks || 0;
+            document.getElementById('ui-endless').classList.add('hide'); document.getElementById('ui-endless-bar').classList.add('hide');
+            document.getElementById('ui-levels').classList.remove('hide');
+            updateLevelUI();
+        }
         document.getElementById('app-container').classList.remove('hide');
-        updateEndlessUI();
-        renderBoard();
-        renderTray();
-    }
-
-    function restoreLevelSession() {
-        gameSessionId++; resetDragState(); currentMode = 'LEVELS'; isBombActive = false; updateAbilitiesUI(); hasPlayedOnce = true;
-        document.getElementById('main-menu').classList.add('hide'); document.getElementById('levels-screen').classList.add('hide'); hideAllModals();
-        
-        const s = saveData.levelSession;
-        currentLevelId = s.currentLevelId;
-        board = s.board;
-        currentTray = s.currentTray.map(t => t ? ALL_SHAPES.find(shape => shape.id === t.id) || t : null);
-        combo = s.combo || 0;
-        lvlMovesLeft = s.lvlMovesLeft || 0;
-        lvlMovesUsed = s.lvlMovesUsed || 0;
-        lvlLinesCurrent = s.lvlLinesCurrent || 0;
-        lvlRowsCurrent = s.lvlRowsCurrent || 0;
-        lvlColsCurrent = s.lvlColsCurrent || 0;
-        lvlMaxComboReached = s.lvlMaxComboReached || 0;
-        lvlSpecialCurrent = s.lvlSpecialCurrent || 0;
-        lvlRocksCurrent = s.lvlRocksCurrent || 0;
-        specialCells = new Set(s.specialCells || []);
-        rocks = new Map(s.rocks || []);
-        movesSinceLastClear = 999; forceClearCombo();
-
-        const data = getLevelData(currentLevelId);
-        lvlLinesTarget = data.target || 0; lvlRowsTarget = data.targetRows || 0; lvlColsTarget = data.targetCols || 0;
-        lvlComboTarget = data.targetCombo || 0; lvlSpecialTarget = data.targetSpecial || 0; lvlRocksTarget = data.targetRocks || 0;
-
-        saveData.lastActiveMode = 'LEVELS';
-
-        document.getElementById('ui-endless').classList.add('hide'); document.getElementById('ui-endless-bar').classList.add('hide');
-        document.getElementById('ui-levels').classList.remove('hide');
-        document.getElementById('app-container').classList.remove('hide');
-        updateLevelUI();
-        renderBoard();
-        renderTray();
+        renderBoard(); renderTray();
     }
 
     function showAd(callback) {
@@ -980,7 +945,7 @@
         });
 
         if (currentMode === 'LEVELS') updateLevelUI(); else updateEndlessUI();
-        saveSessionData();
+        saveActiveSession();
         setTimeout(() => { if (snapshot !== gameSessionId) return; isProcessing = false; checkTrayAndState(); }, 300);
     }
 
@@ -993,7 +958,7 @@
     function doRefreshTray() {
         playSound('refresh');
         currentTray = [getRandomWeightedShape(), getRandomWeightedShape(), getRandomWeightedShape()];
-        saveSessionData(); renderTray(); checkTrayAndState();
+        saveActiveSession(); renderTray(); checkTrayAndState();
     }
 
     function forceClearCombo() {
@@ -1071,7 +1036,7 @@
         const ghostX = getClientX(e); const cy = getClientY(e);
         let yOffset = 0;
         
-        // Умный оффсет с плавной кривой
+        // Умный оффсет с плавной кривой (асимптота к 312px)
         if (isTouchDrag) {
             let dy = Math.max(0, dragStartY - cy);
             yOffset = 312 * (1 - Math.exp(-dy / 250)); 
@@ -1229,17 +1194,16 @@
                 updateLevelUI();
             }
 
-            saveSessionData();
+            saveActiveSession();
             setTimeout(() => { if (snapshot !== gameSessionId) return; isProcessing = false; checkTrayAndState(); }, 300);
 
         } else {
             if (comboTimeout === null) combo = 0;
             if (currentMode === 'ENDLESS') { score += blocksPlaced; updateEndlessUI(); }
-            saveSessionData(); 
-            checkTrayAndState();
+            saveActiveSession(); checkTrayAndState();
         }
     }
-    
+
     function checkTrayAndState() {
         const data = getLevelData(currentLevelId);
         if (currentMode === 'LEVELS') {
@@ -1297,7 +1261,7 @@
             const totalFilled = board.flat().filter(v => v !== null).length + rocks.size; let canPlayAny = pool.some(shapeObj => checkPlayability(shapeObj.m));
             if (!canPlayAny && totalFilled < (BOARD_SIZE * BOARD_SIZE * 0.8)) pool[2] = ALL_SHAPES[0]; 
         }
-        currentTray = [...pool]; saveSessionData(); renderTray();
+        currentTray = [...pool]; saveActiveSession(); renderTray();
         if (currentMode === 'ENDLESS') checkGameOverEndless(); else checkLevelState();
     }
 
@@ -1348,11 +1312,8 @@
         let canPlay = currentTray.some(shapeObj => shapeObj && checkPlayability(shapeObj.m));
 
         if (!canPlay && currentTray.some(s => s !== null)) {
-            playGameOverSound(); 
-            saveData.endlessSession = null; // Очищаем сессию, чтобы не пыталось восстановиться поражение
-            saveData.lastActiveMode = 'MENU';
-            saveLocalAndCloud();
-            
+            isGameOverState = true;
+            playGameOverSound(); saveData.activeSession = null; saveLocalAndCloud();
             setTimeout(() => {
                 document.getElementById('final-score').innerText = score;
                 const badge = document.getElementById('new-record-badge');
@@ -1367,6 +1328,7 @@
 
     function continueEndlessWithAd() {
         showAd(() => {
+            isGameOverState = false;
             document.getElementById('game-over-modal').classList.add('hide'); hasContinuedEndless = true; 
             let filled = [];
             for(let r=0; r<BOARD_SIZE; r++){ for(let c=0; c<BOARD_SIZE; c++){ if(board[r][c] !== null && !rocks.has(`${r}-${c}`)) filled.push({r,c}); } }
@@ -1374,19 +1336,17 @@
             
             let snapshot = ++gameSessionId;
             toClear.forEach(cell => { board[cell.r][cell.c] = null; animateClear(cell.r, cell.c, snapshot); });
-            doRefreshTray(); score += toClear.length * 10; updateEndlessUI(); 
-            
-            saveData.lastActiveMode = 'ENDLESS'; // Снова активируем
-            saveSessionData();
+            doRefreshTray(); score += toClear.length * 10; updateEndlessUI(); saveActiveSession();
         });
     }
 
     function startMode(mode, forceRestart = false) {
         gameSessionId++; resetDragState(); currentMode = mode; isBombActive = false; updateAbilitiesUI(); hasPlayedOnce = true;
+        isGameOverState = false;
+        
         document.getElementById('main-menu').classList.add('hide'); document.getElementById('levels-screen').classList.add('hide'); hideAllModals();
 
         if (mode === 'ENDLESS') {
-            saveData.lastActiveMode = 'ENDLESS';
             document.getElementById('ui-endless').classList.remove('hide'); document.getElementById('ui-endless-bar').classList.remove('hide');
             document.getElementById('ui-levels').classList.add('hide');
             document.getElementById('app-container').classList.remove('hide');
@@ -1395,23 +1355,20 @@
     }
 
     function startNewEndless() {
-        saveData.endlessSession = null;
+        isGameOverState = false;
         movesSinceLastClear = 999; forceClearCombo(); board = emptyB(); specialCells.clear(); rocks.clear();
         score = 0; combo = 0; endlessLevel = 1; hasContinuedEndless = false;
         updateEndlessUI(); renderBoard(); generateTray();
     }
 
     function goHome() {
-        saveSessionData(); // Обязательно сохраняем перед переходом в меню
-        saveData.lastActiveMode = 'MENU';
-        
         gameSessionId++; resetDragState(); forceClearCombo(); hideAllModals();
         document.getElementById('levels-screen').classList.add('hide'); document.getElementById('app-container').classList.add('hide');
         document.getElementById('ui-endless').classList.add('hide'); document.getElementById('ui-endless-bar').classList.add('hide');
         document.getElementById('ui-levels').classList.add('hide'); document.getElementById('main-menu').classList.remove('hide');
         
+        saveActiveSession(); 
         currentMode = 'MENU'; updateDailyMenuUI();
-        saveLocalAndCloud();
     }
 
     function hideAllModals() {
@@ -1474,15 +1431,10 @@
     }
 
     function startLevel(id) {
-        // Если это тот же самый уровень, восстанавливаем его сессию
-        if (saveData.levelSession && saveData.levelSession.currentLevelId === id) {
-            restoreLevelSession();
-            return;
-        }
-
-        saveData.levelSession = null;
         gameSessionId++; resetDragState(); movesSinceLastClear = 999; forceClearCombo();
         currentMode = 'LEVELS'; currentLevelId = id; isBombActive = false; updateAbilitiesUI(); hasPlayedOnce = true;
+        isGameOverState = false;
+
         const data = getLevelData(id);
         
         document.getElementById('main-menu').classList.add('hide'); document.getElementById('levels-screen').classList.add('hide'); hideAllModals();
@@ -1503,9 +1455,6 @@
         if (data.targetCols !== undefined) lvlColsTarget = data.targetCols;
         
         updateLevelUI(); renderBoard(); currentTray = [null, null, null]; generateTray();
-        
-        saveData.lastActiveMode = 'LEVELS';
-        saveLocalAndCloud();
     }
 
     function updateLevelUI() {
@@ -1549,10 +1498,8 @@
     }
 
     function levelWin() {
-        playSound('win'); 
-        saveData.levelSession = null; 
-        saveData.lastActiveMode = 'MENU';
-        
+        isGameOverState = true;
+        playSound('win'); saveData.activeSession = null; 
         let isDaily = typeof currentLevelId === 'string' && currentLevelId.startsWith('daily_');
         let dailyIdx = isDaily ? parseInt(currentLevelId.split('_')[1]) : -1;
 
@@ -1593,11 +1540,8 @@
     }
 
     function levelFail(reason) {
-        playGameOverSound(); 
-        saveData.levelSession = null; 
-        saveData.lastActiveMode = 'MENU';
-        saveLocalAndCloud();
-        
+        isGameOverState = true;
+        playGameOverSound(); saveData.activeSession = null; saveLocalAndCloud();
         document.getElementById('fail-reason').innerText = reason; const data = getLevelData(currentLevelId);
         const container = document.getElementById('fail-progress-container'); let html = '';
         
@@ -1617,11 +1561,7 @@
         document.getElementById('btn-continue-ad').addEventListener('click', continueEndlessWithAd);
         
         document.getElementById('btn-menu-endless').addEventListener('click', () => {
-            if (saveData.endlessSession) {
-                restoreEndlessSession();
-            } else {
-                startMode('ENDLESS');
-            }
+            startMode('ENDLESS');
         });
         
         document.getElementById('btn-menu-levels').addEventListener('click', openLevelsScreen);
@@ -1645,18 +1585,9 @@
         document.querySelectorAll('.btn-home').forEach(btn => btn.addEventListener('click', goHome));
         document.querySelectorAll('.btn-restart').forEach(btn => {
             btn.addEventListener('click', () => {
-                if (currentMode === 'ENDLESS') { 
-                    saveData.endlessSession = null;
-                    startMode('ENDLESS', true); 
-                } 
-                else if (typeof currentLevelId === 'string' && currentLevelId.startsWith('daily_')) { 
-                    saveData.levelSession = null;
-                    startLevel('daily_0'); 
-                } 
-                else { 
-                    saveData.levelSession = null;
-                    startLevel(currentLevelId); 
-                }
+                if (currentMode === 'ENDLESS') { startMode('ENDLESS', true); } 
+                else if (typeof currentLevelId === 'string' && currentLevelId.startsWith('daily_')) { startLevel('daily_0'); } 
+                else { startLevel(currentLevelId); }
             });
         });
         
@@ -1680,8 +1611,9 @@
             if (window.vkBridge) vkBridge.send('VKWebAppShare', { link: "https://vk.com/app" + APP_ID });
         });
 
+        // ЦЕНТРАЛИЗОВАННЫЙ ОБРАБОТЧИК КЛИКОВ ДЛЯ ЗВУКОВ И МУЗЫКИ
         document.addEventListener('pointerdown', (e) => {
-            startBgm();
+            startBgm(); // При первом клике запускается фоновая музыка
 
             if (e.target.closest('#btn-toggle-music')) { toggleMusic(); playSound('click'); return; }
             if (e.target.closest('#btn-toggle-sound')) { toggleSound(); playSound('click'); return; }
@@ -1692,22 +1624,23 @@
             }
         });
 
+        // Остановка звука при сворачивании на уровне браузера
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 pauseBgm();
-                if (currentMode !== 'MENU') {
-                    saveSessionData();
-                    saveLocalAndCloud(true); // Мгновенное сохранение на устройство при сворачивании
+                if (currentMode !== 'MENU' && !isGameOverState) {
+                    saveActiveSession();
                 }
+                saveLocalAndCloud(true);
             } else {
                 resumeBgm();
             }
         });
         
         window.addEventListener('beforeunload', () => {
-            if (currentMode !== 'MENU') {
-                saveSessionData();
-                saveLocalAndCloud(true); // Мгновенное сохранение при закрытии вкладки
+            if (currentMode !== 'MENU' && !isGameOverState) {
+                saveActiveSession();
+                saveLocalAndCloud(true); 
             }
         });
         
@@ -1716,6 +1649,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+        preloadAudioFiles(); // Запускаем предзагрузку звуков в кэш сразу при загрузке DOM
         initApp();
         initVKAndData();
     });
