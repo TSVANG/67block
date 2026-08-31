@@ -653,16 +653,19 @@
     }
 
     function saveActiveSession() {
-        if (isGameOverState) return; // Не перезаписываем сохранение, если игра уже проиграна или завершена
-        if (currentMode === 'MENU') { saveData.activeSession = null; } 
-        else {
-            saveData.activeSession = {
-                mode: currentMode, board: board, currentTray: currentTray.map(s => s ? { id: s.id, m: s.m, c: s.c } : null),
-                score, combo, endlessLevel, hasContinuedEndless, currentLevelId, lvlMovesLeft, lvlMovesUsed, 
-                lvlLinesCurrent, lvlRowsCurrent, lvlColsCurrent, lvlMaxComboReached, lvlSpecialCurrent, lvlRocksCurrent,
-                specialCells: Array.from(specialCells), rocks: Array.from(rocks.entries())
-            };
-        }
+        // Если мы в тупике (game over), сессию сохранять не нужно.
+        if (isGameOverState) return; 
+        
+        // Если игрок находится в меню, не перезаписываем сессию пустым состоянием.
+        if (currentMode === 'MENU') return;
+
+        saveData.activeSession = {
+            mode: currentMode, board: board, currentTray: currentTray.map(s => s ? { id: s.id, m: s.m, c: s.c } : null),
+            score, combo, endlessLevel, hasContinuedEndless, currentLevelId, lvlMovesLeft, lvlMovesUsed, 
+            lvlLinesCurrent, lvlRowsCurrent, lvlColsCurrent, lvlMaxComboReached, lvlSpecialCurrent, lvlRocksCurrent,
+            specialCells: Array.from(specialCells), rocks: Array.from(rocks.entries())
+        };
+        
         saveLocalAndCloud();
     }
 
@@ -1313,7 +1316,9 @@
 
         if (!canPlay && currentTray.some(s => s !== null)) {
             isGameOverState = true;
-            playGameOverSound(); saveData.activeSession = null; saveLocalAndCloud();
+            playGameOverSound(); 
+            saveData.activeSession = null; 
+            saveLocalAndCloud();
             setTimeout(() => {
                 document.getElementById('final-score').innerText = score;
                 const badge = document.getElementById('new-record-badge');
@@ -1561,7 +1566,12 @@
         document.getElementById('btn-continue-ad').addEventListener('click', continueEndlessWithAd);
         
         document.getElementById('btn-menu-endless').addEventListener('click', () => {
-            startMode('ENDLESS');
+            // Если у нас уже есть активная сессия в бесконечном режиме, возобновляем её
+            if (saveData.activeSession && saveData.activeSession.mode === 'ENDLESS') {
+                restoreSession();
+            } else {
+                startMode('ENDLESS');
+            }
         });
         
         document.getElementById('btn-menu-levels').addEventListener('click', openLevelsScreen);
